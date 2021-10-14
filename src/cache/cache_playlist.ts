@@ -5,14 +5,26 @@ import {
     ImageObject,
     PlaylistObject,
     PlaylistTrackObject,
+    PlaylistTracksRefObject,
     PublicUserObject,
+    SimplifiedPlaylistObject,
 } from "../api/objects";
 import { ThingPlaylist } from "../thing_types";
 import CacheEntity from "./cache_entity";
 
+function isPlaylistObject(
+    playlist: SimplifiedPlaylistObject | PlaylistObject
+): playlist is PlaylistObject {
+    return playlist.hasOwnProperty("followers");
+}
+
+/**
+ * Since the Playlist API does _not_ provide a multi-get, it is infeasible to
+ *
+ */
 export default class CachePlaylist
     extends CacheEntity
-    implements PlaylistObject
+    implements SimplifiedPlaylistObject
 {
     // Properties
     // =======================================================================
@@ -28,13 +40,13 @@ export default class CachePlaylist
     owner: PublicUserObject;
     public: null | boolean;
     snapshot_id: string;
-    followers: FollowersObject;
-    tracks: CursorPagingObject<PlaylistTrackObject>;
+    followers?: FollowersObject;
+    tracks: PlaylistTracksRefObject | CursorPagingObject<PlaylistTrackObject>;
 
     // Construction
     // =======================================================================
 
-    constructor(playlist: PlaylistObject) {
+    constructor(playlist: SimplifiedPlaylistObject | PlaylistObject) {
         super(playlist.type, playlist.id, playlist.name, playlist.uri);
         this.type = playlist.type;
         this.collaborative = playlist.collaborative;
@@ -45,7 +57,9 @@ export default class CachePlaylist
         this.owner = playlist.owner;
         this.public = playlist.public;
         this.snapshot_id = playlist.snapshot_id;
-        this.followers = playlist.followers;
+        if (isPlaylistObject(playlist)) {
+            this.followers = playlist.followers;
+        }
         this.tracks = playlist.tracks;
     }
 

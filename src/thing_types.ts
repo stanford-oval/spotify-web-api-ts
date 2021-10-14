@@ -1,5 +1,14 @@
 import { Value } from "thingpedia";
 
+export class ThingError extends Error {
+    code: string;
+
+    constructor(message: string, code: string) {
+        super(message);
+        this.code = code;
+    }
+}
+
 export interface ThingTrack {
     id: Value.Entity;
     artists: Value.Entity[];

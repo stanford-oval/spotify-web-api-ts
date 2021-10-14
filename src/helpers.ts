@@ -1,3 +1,5 @@
+import { strict as assert } from "assert";
+
 import { SimplifiedAlbumObject } from "./api/objects";
 import { ThingPlayable } from "./thing_types";
 
@@ -13,6 +15,18 @@ export function* iterArtistIdsForAlbums(
 
 export function artistIdsForAlbums(albums: SimplifiedAlbumObject[]): string[] {
     return Array.from(new Set(iterArtistIdsForAlbums(albums)));
+}
+
+export function assertBounds(
+    name: string,
+    value: number,
+    min: number,
+    max: number
+): void {
+    assert(
+        min <= value && value <= max,
+        `Expected ${min} ≤ ${name} ≤ ${max}, given ${name} = ${value}`
+    );
 }
 
 export function entityMatchScore(

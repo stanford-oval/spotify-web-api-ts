@@ -106,6 +106,13 @@ export class SearchQuery {
         return value.toLocaleLowerCase();
     }
 
+    public static from(value: SearchQueryProps | SearchQuery) {
+        if (value instanceof SearchQuery) {
+            return value;
+        }
+        return new SearchQuery(value);
+    }
+
     private _album?: string | Value.Entity;
     private _any?: string | Value.Entity;
     private _artist?: string | Value.Entity;
@@ -241,7 +248,7 @@ export class SearchQuery {
         }
     }
 
-    encode(): string {
+    toString(): string {
         const terms: string[] = [];
 
         if (this._any !== undefined) {
