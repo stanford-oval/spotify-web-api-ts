@@ -11,6 +11,12 @@
       "email": "neil@neilsouza.com"
     }
   ],
+  "main": "dist/index.js",
+  "scripts": {
+    "clean": "rm -rf ./dist && rm -rf tmp/*.log",
+    "build": "npm run clean && tsc --build",
+    "prepare": "npm run build"
+  },
   "dependencies": {
     "redis": "^4.0.0-rc.2",
     "winston": "^3.3.3"

@@ -1,7 +1,7 @@
 import * as Winston from "winston";
 import { findPackageName } from "./helpers";
 
-import { Logger, createLogger, LoggerId, Named } from "./logger";
+import { Logger, createLogger, LoggerId } from "./logger";
 
 export interface FactoryKwds extends Winston.LoggerOptions {
     runRoot: string;

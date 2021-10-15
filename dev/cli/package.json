@@ -1,0 +1,29 @@
+{
+  "name": "@stanford-oval/spotify-web-api-cli",
+  "version": "0.0.0",
+  "description": "Local dev CLI for Spotify Web API",
+  "author": "Stanford University Open Virtual Assistant Lab",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/stanford-oval/spotify-web-api-cache-client",
+  "contributors": [
+    {
+      "name": "Neil Souza",
+      "email": "neil@neilsouza.com"
+    }
+  ],
+  "scripts": {
+    "clean": "rm -rf ./dist",
+    "build": "npm run clean && tsc --build",
+    "prepare": "cd ../.. && npm run prepare && cd dev/cli && npm run build"
+  },
+  "bin": {
+    "spotify-web-api": "dist/index.ts"
+  },
+  "dependencies": {
+    "@stanford-oval/spotify-web-api": "../..",
+    "commander": "^8.2.0"
+  },
+  "devDependencies": {
+    "typescript": "~4.3.5"
+  }
+}

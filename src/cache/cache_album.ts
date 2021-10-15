@@ -3,14 +3,14 @@ import {
     AlbumObject,
     AlbumRestrictionObject,
     CopyrightObject,
-    CursorPagingObject,
+    PagingObject,
     ExternalIdObject,
     ExternalUrlObject,
     ImageObject,
     SimplifiedArtistObject,
     SimplifiedTrackObject,
 } from "../api/objects";
-import { ThingAlbum } from "../thing_types";
+import { ThingAlbum } from "../things";
 import CacheEntity from "./cache_entity";
 
 export default class CacheAlbum extends CacheEntity implements AlbumObject {
@@ -36,7 +36,7 @@ export default class CacheAlbum extends CacheEntity implements AlbumObject {
     genres: string[];
     label: string;
     popularity: number; // int[0, 100]
-    tracks: CursorPagingObject<SimplifiedTrackObject>;
+    tracks: PagingObject<SimplifiedTrackObject>;
 
     // Construction
     // =======================================================================

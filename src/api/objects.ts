@@ -115,6 +115,70 @@ export interface ResumePointObject {
     resume_position_ms: number; // int
 }
 
+/**
+ * @see https://developer.spotify.com/documentation/web-api/reference/#object-deviceobject
+ */
+export interface DeviceObject {
+    id: string;
+    is_active: boolean;
+    is_private_session: boolean;
+    is_restricted: boolean;
+    name: string;
+    type: string; // such as “[cC]omputer”, “smartphone” or “speaker” ???
+    volume_percent: number; // int[0, 100]
+}
+
+/**
+ * @see https://developer.spotify.com/documentation/web-api/reference/#object-disallowsobject
+ */
+export interface DisallowsObject {
+    interrupting_playback?: boolean;
+    pausing?: boolean;
+    resuming?: boolean;
+    seeking?: boolean;
+    skipping_next?: boolean;
+    skipping_prev?: boolean;
+    toggling_repeat_context?: boolean;
+    toggling_repeat_track?: boolean;
+    toggling_shuffle?: boolean;
+    transferring_playback?: boolean;
+}
+
+export interface ContextObject {
+    external_urls: ExternalUrlObject;
+    href: string;
+    type: string; // "playlist", etc.
+    uri: string;
+}
+
+export interface PagingObject<TItem> {
+    href: string;
+    items: TItem[];
+    limit: number; // int
+    next: null | string;
+    // Not documented
+    offset: number; // int
+    // Not documented
+    previous: null | string;
+    total: number; // int
+}
+
+export function isPagingObject(x: any): x is PagingObject<unknown> {
+    return (
+        x.hasOwnProperty("total") &&
+        typeof x.total === "number" &&
+        x.hasOwnProperty("items") &&
+        Array.isArray(x.items)
+    );
+}
+
+export function isPagingObjectOf<TItem>(
+    x: any,
+    isItem: (item: any) => item is TItem
+): x is PagingObject<TItem> {
+    return isPagingObject(x) && x.items.every(isItem);
+}
+
 // Custom Bases
 // ===========================================================================
 //
@@ -145,18 +209,8 @@ export interface EntityObject {
 /**
  * @see https://developer.spotify.com/documentation/web-api/reference/#object-cursorpagingobject
  */
-export interface CursorPagingObject<TItem> {
-    // TODO Haven't seen one yet...
-    cursors?: CursorObject;
-    href: string;
-    items: TItem[];
-    limit: number; // int
-    next: null | string;
-    // Not documented
-    offset: number; // int
-    // Not documented
-    previous: null | string;
-    total: number; // int
+export interface CursorPagingObject<TItem> extends PagingObject<TItem> {
+    cursors: CursorObject;
 }
 
 /**
@@ -230,7 +284,7 @@ export interface AlbumObject extends SimplifiedAlbumObject {
     genres: string[];
     label: string;
     popularity: number; // int[0, 100]
-    tracks: CursorPagingObject<SimplifiedTrackObject>;
+    tracks: PagingObject<SimplifiedTrackObject>;
 }
 
 export /**
@@ -281,7 +335,8 @@ export interface SimplifiedEpisodeObject extends EntityObject {
     release_date: string;
     release_date_precision: string;
     restrictions: EpisodeRestrictionObject;
-    resume_point: ResumePointObject;
+    // Present when token has `user-read-playback-position` perm
+    resume_point?: ResumePointObject;
 }
 
 export interface EpisodeObject extends SimplifiedEpisodeObject {}
@@ -317,7 +372,7 @@ export interface PlaylistTrackObject {
  */
 export interface PlaylistObject extends SimplifiedPlaylistObject {
     followers: FollowersObject;
-    tracks: CursorPagingObject<PlaylistTrackObject>;
+    tracks: PagingObject<PlaylistTrackObject>;
 }
 
 /**
@@ -339,3 +394,25 @@ export interface SimplifiedShowObject extends EntityObject {
 }
 
 export interface ShowObject extends SimplifiedShowObject {}
+
+export interface CurrentlyPlayingObject {
+    context: null | ContextObject;
+    currently_playing_type: "track" | "episode" | "ad" | "unknown";
+    is_playing: boolean;
+    item: null | TrackObject | EpisodeObject;
+    progress_ms: number;
+    /** Unix Millisecond Timestamp when data was fetched. */
+    timestamp: number;
+}
+
+/**
+ * @see https://developer.spotify.com/documentation/web-api/reference/#object-currentlyplayingcontextobject
+ */
+export interface CurrentlyPlayingContextObject extends CurrentlyPlayingObject {
+    actions: {
+        disallows: DisallowsObject;
+    };
+    device: DeviceObject;
+    repeat_state: "off" | "track" | "context";
+    shuffle_state: boolean;
+}

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# 
+# A little wrapper around `dev/cli/dist/index.ts`, which is the CLI entry-point.
+# 
+# 1. 	`dev/cli/dist/index.ts` needs to be inoked with `node`, so this handles
+# 		that.
+# 2. 	Introduces "wrapper options" that invoke actions _before_ the CLI is
+# 		started, such as "refresh" (re-build/link) with `-R`.
+# 
+
+# Common / useful `set` commands
+set -Ee # Exit on error
+set -o pipefail # Check status of piped commands
+set -u # Error on undefined vars
+# set -v # Print everything
+# set -x # Print commands (with expanded vars)
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+cli_args=()
+
+function .refresh {
+	local cwd="${PWD}"
+	echo "[WRAPPER] Refreshing build..."
+	cd "${REPO_ROOT}/dev/cli"
+	npm install
+	cd "${cwd}"
+}
+
+for arg in "$@"; do
+	if [[ "${arg}" == "-R" ]]; then
+		.refresh
+	else
+		cli_args+=("${arg}")
+	fi
+done
+
+echo "[WRAPPER] Invoking CLI..."
+node "${REPO_ROOT}/dev/cli/dist/index.js" "${cli_args[@]}"

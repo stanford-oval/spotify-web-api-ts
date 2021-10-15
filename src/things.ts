@@ -40,6 +40,11 @@ export interface ThingPlaylist {
 
 export interface ThingShow {
     id: Value.Entity;
+    publisher: string;
+}
+
+export interface ThingEpisode {
+    id: Value.Entity;
 }
 
 export type ThingPlayable =

@@ -1,31 +1,53 @@
+// Imports
+// ===========================================================================
+// Standard Library
+// ---------------------------------------------------------------------------
+
 import { URL, URLSearchParams } from "url";
 import { strict as assert } from "assert";
 
-import { HTTPError, HTTPRequestOptions } from "thingpedia/dist/helpers/http";
+// Dependencies
+// ---------------------------------------------------------------------------
+
+import { Helpers } from "thingpedia";
+
+// Package
+// ---------------------------------------------------------------------------
 
 import {
     AlbumObject,
     ArtistObject,
     AudioFeaturesObject,
-    CursorPagingObject,
+    CurrentlyPlayingContextObject,
+    CurrentlyPlayingObject,
+    PagingObject,
+    DeviceObject,
     SimplifiedAlbumObject,
     SimplifiedShowObject,
     TrackObject,
+    SimplifiedEpisodeObject,
 } from "./objects";
 import {
     FeaturedPlaylistsResponse,
-    NewReleasesResponse,
     SearchResponse,
-    UserCurrentlyPlayingTrackResponse,
+    UserSavedAlbum,
     UserSavedShow,
+    UserSavedTrack,
 } from "./responses";
 import { SearchQuery, SearchQueryProps } from "./search_query";
-import { Helpers } from "thingpedia";
-import { ThingError } from "../thing_types";
+import { ThingError } from "../things";
 import Logging from "../logging";
 import { Logger } from "../logging/logger";
-import { assertBounds } from "../helpers";
-import { FeaturedPlaylistsOptions, UserSavedShowsOptions } from "./requests";
+import { assertBounds, assertMax, checkPageOptions } from "../helpers";
+import { BrowseOptions, MarketPageOptions, PageOptions } from "./requests";
+
+// Constants
+// ===========================================================================
+
+const LOG = Logging.get(__filename);
+
+// Types
+// ===========================================================================
 
 export type SearchKwds = {
     query: SearchQueryProps | SearchQuery;
@@ -38,21 +60,21 @@ export type SearchKwds = {
 
 export type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE";
 
-const LOG = Logging.get(__filename);
-
+// Class Definition
+// ===========================================================================
 export default class Api {
     private static readonly LOG = LOG.childFor(Api);
 
     static readonly DEFAULT_URL_BASE = "https://api.spotify.com";
 
-    useOAuth2: HTTPRequestOptions["useOAuth2"];
+    useOAuth2: Helpers.Http.HTTPRequestOptions["useOAuth2"];
     urlBase: string;
 
     constructor({
         useOAuth2,
         urlBase = Api.DEFAULT_URL_BASE,
     }: {
-        useOAuth2: HTTPRequestOptions["useOAuth2"];
+        useOAuth2: Helpers.Http.HTTPRequestOptions["useOAuth2"];
         urlBase?: string;
     }) {
         this.useOAuth2 = useOAuth2;
@@ -81,7 +103,7 @@ export default class Api {
         return Api.LOG;
     }
 
-    private handleHTTPError(error: HTTPError): never {
+    private handleHTTPError(error: Helpers.Http.HTTPError): never {
         switch (error.code) {
             case 429:
                 throw new ThingError(`Too many requests`, "rate_limit_error");
@@ -107,7 +129,7 @@ export default class Api {
     }
 
     private handleHTTPFailure(reason: any): never {
-        if (reason instanceof HTTPError) {
+        if (reason instanceof Helpers.Http.HTTPError) {
             this.handleHTTPError(reason);
         }
         throw new Error(`Unknown HTTP Error, reason: ${reason}`);
@@ -132,7 +154,7 @@ export default class Api {
         });
         const url = this.makeURL(path, query);
 
-        const options: HTTPRequestOptions = {
+        const options: Helpers.Http.HTTPRequestOptions = {
             useOAuth2: this.useOAuth2,
             accept: "application/json",
         };
@@ -269,8 +291,8 @@ export default class Api {
             limit?: number;
             offset?: number;
         } = {}
-    ): Promise<CursorPagingObject<SimplifiedAlbumObject>> {
-        return this.get<CursorPagingObject<SimplifiedAlbumObject>>(
+    ): Promise<PagingObject<SimplifiedAlbumObject>> {
+        return this.get<PagingObject<SimplifiedAlbumObject>>(
             `/v1/artists/${id}/albums`,
             options
         );
@@ -293,7 +315,7 @@ export default class Api {
     // ### Browse API ###
 
     getFeaturedPlaylists(
-        options: FeaturedPlaylistsOptions = {}
+        options: BrowseOptions = {}
     ): Promise<FeaturedPlaylistsResponse> {
         return this.get<FeaturedPlaylistsResponse>(
             "/v1/browse/featured-playlists",
@@ -302,27 +324,46 @@ export default class Api {
     }
 
     getNewReleases(
-        options: {
-            country?: string;
-            limit?: number;
-            offset?: number;
-        } = {}
-    ): Promise<NewReleasesResponse> {
-        return this.get<NewReleasesResponse>(
+        options: BrowseOptions = {}
+    ): Promise<PagingObject<SimplifiedAlbumObject>> {
+        return this.get<{ albums: PagingObject<SimplifiedAlbumObject> }>(
             "/v1/browse/new-releases",
             options
-        );
+        ).then((r) => r.albums);
+    }
+
+    // ### Follow API ########################################################
+
+    getMyFollowedArtists(
+        options: {
+            after?: string;
+            limit?: number;
+        } = {}
+    ): Promise<PagingObject<ArtistObject>> {
+        return this.get<{ artists: PagingObject<ArtistObject> }>(
+            "/v1/me/following",
+            options
+        ).then(({ artists }) => artists);
     }
 
     // ### Library API ###
 
     getUserSavedShows(
-        options: UserSavedShowsOptions = {}
-    ): Promise<CursorPagingObject<UserSavedShow>> {
-        return this.get<CursorPagingObject<UserSavedShow>>(
-            "/v1/me/shows",
-            options
-        );
+        options: PageOptions = {}
+    ): Promise<PagingObject<UserSavedShow>> {
+        return this.get<PagingObject<UserSavedShow>>("/v1/me/shows", options);
+    }
+
+    getUserSavedTracks(
+        options: PageOptions = {}
+    ): Promise<PagingObject<UserSavedTrack>> {
+        return this.get<PagingObject<UserSavedTrack>>("/v1/me/tracks", options);
+    }
+
+    getUserSavedAlbums(
+        options: PageOptions = {}
+    ): Promise<PagingObject<UserSavedAlbum>> {
+        return this.get<PagingObject<UserSavedAlbum>>("/v1/me/albums", options);
     }
 
     // ### Personalization ###
@@ -333,11 +374,11 @@ export default class Api {
             limit?: number;
             offset?: number;
         } = {}
-    ): Promise<CursorPagingObject<ArtistObject>> {
+    ): Promise<PagingObject<ArtistObject>> {
         if (options.limit !== undefined) {
             assertBounds("options.limit", options.limit, 1, 50);
         }
-        return this.get<CursorPagingObject<ArtistObject>>(
+        return this.get<PagingObject<ArtistObject>>(
             "/v1/me/top/artists",
             options
         );
@@ -349,11 +390,11 @@ export default class Api {
             limit?: number;
             offset?: number;
         } = {}
-    ): Promise<CursorPagingObject<TrackObject>> {
+    ): Promise<PagingObject<TrackObject>> {
         if (options.limit !== undefined) {
             assertBounds("options.limit", options.limit, 1, 50);
         }
-        return this.get<CursorPagingObject<TrackObject>>(
+        return this.get<PagingObject<TrackObject>>(
             "/v1/me/top/tracks",
             options
         );
@@ -364,11 +405,27 @@ export default class Api {
     getUserCurrentlyPlayingTrack(options: {
         market: string;
         additional_types?: string | string[];
-    }): Promise<UserCurrentlyPlayingTrackResponse> {
-        return this.get<UserCurrentlyPlayingTrackResponse>(
+    }): Promise<CurrentlyPlayingObject> {
+        return this.get<CurrentlyPlayingObject>(
             "/v1/me/player/currently-playing",
             options
         );
+    }
+
+    getMyPlayer(
+        options: {
+            market?: string;
+            additional_types?: string | string[];
+        } = {}
+    ): Promise<CurrentlyPlayingContextObject> {
+        return this.get<CurrentlyPlayingContextObject>(
+            "/v1/me/player",
+            options
+        );
+    }
+
+    getMyPlayerDevices(): Promise<DeviceObject[]> {
+        return this.getList<DeviceObject>("/v1/me/player/devices");
     }
 
     // ### Search API ###
@@ -384,20 +441,28 @@ export default class Api {
         ids: string[],
         options: { market?: string } = {}
     ): Promise<SimplifiedShowObject[]> {
-        assert(ids.length <= 50, `Limit 50 ids, given ${ids.length}.`);
+        assertMax("ids.length", ids.length, 50);
         return this.getList<SimplifiedShowObject>("/v1/shows", {
             ids,
             ...options,
         });
     }
 
+    getShowEpisodes(
+        showId: string,
+        options: MarketPageOptions = {}
+    ): Promise<PagingObject<SimplifiedEpisodeObject>> {
+        checkPageOptions(options);
+        return this.get<PagingObject<SimplifiedEpisodeObject>>(
+            `/v1/shows/${showId}/episodes`,
+            options
+        );
+    }
+
     // ### Tracks API ###
 
     getAudioFeatures(trackIds: string[]): Promise<AudioFeaturesObject[]> {
-        assert(
-            trackIds.length <= 100,
-            `Limit 100 ids, given ${trackIds.length}.`
-        );
+        assertMax("trackIds.length", trackIds.length, 100);
         return this.getList<AudioFeaturesObject>("/v1/audio-features", {
             ids: trackIds,
         });

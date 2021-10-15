@@ -1,3 +1,8 @@
+// Imports
+// ===========================================================================
+// Dependencies
+// ---------------------------------------------------------------------------
+
 import { HTTPRequestOptions } from "thingpedia/dist/helpers/http";
 import { RedisClientType } from "redis/dist/lib/client";
 import {
@@ -6,8 +11,14 @@ import {
     ExecEnvironment,
 } from "thingtalk/dist/runtime/exec_environment";
 
+// Package
+// ---------------------------------------------------------------------------
+
 import {
     ArtistObject,
+    CurrentlyPlayingContextObject,
+    DeviceObject,
+    EpisodeObject,
     SimplifiedAlbumObject,
     SimplifiedPlaylistObject,
     SimplifiedShowObject,
@@ -17,12 +28,13 @@ import CacheTrack from "./cache/cache_track";
 import {
     ThingAlbum,
     ThingArtist,
+    ThingEpisode,
     ThingError,
     ThingPlayable,
     ThingPlaylist,
     ThingShow,
     ThingTrack,
-} from "./thing_types";
+} from "./things";
 import Api, { SearchKwds } from "./api";
 import CacheAlbum from "./cache/cache_album";
 import CacheArtist from "./cache/cache_artist";
@@ -30,26 +42,54 @@ import { SearchQuery } from "./api/search_query";
 import CacheEntity from "./cache/cache_entity";
 import CachePlaylist from "./cache/cache_playlist";
 import CacheShow from "./cache/cache_show";
+import { BrowseOptions, MarketPageOptions } from "./api/requests";
+import CacheEpisode from "./cache/cache_episode";
 import {
-    FeaturedPlaylistsOptions,
-    UserSavedShowsOptions,
-} from "./api/requests";
+    assertBounds,
+    assertUnreachable,
+    isJSONParseEmptyInputError,
+    isTestMode,
+    isUnfinished,
+} from "./helpers";
+import Logging from "./logging";
+import { Logger } from "./logging/logger";
+import { Value } from "thingpedia";
+
+// Constants
+// ===========================================================================
+
+const LOG = Logging.get(__filename);
+
+// Types
+// ===========================================================================
 
 type Params = Record<string, any>;
 type CachePlayable = CacheTrack | CacheAlbum | CachePlaylist | CacheShow;
 
+// Class Definition
+// ===========================================================================
 export default class Client {
-    api: Api;
+    private static readonly log = LOG.childFor(Client);
+
+    public readonly api: Api;
+    private newQueues: Map<any, NewQueue>;
 
     constructor(
         useOAuth2: HTTPRequestOptions["useOAuth2"],
-        redis: RedisClientType
+        redis?: RedisClientType
     ) {
         this.api = new Api({ useOAuth2 });
+        this.newQueues = new Map<any, NewQueue>();
     }
 
+    // Instance Methods
+    // =======================================================================
     // Helper Methods
     // -----------------------------------------------------------------------
+
+    private get log(): Logger {
+        return Client.log;
+    }
 
     buildQuery(
         filter: CompiledFilterHint[],
@@ -124,7 +164,10 @@ export default class Client {
         return searchMethod({ query, ...otherSearchKwds });
     }
 
-    // ### Augment Helper Methods ###
+    // ### Augment Helper Methods ############################################
+    //
+    // Extend Spotify Web API objects into their cached form.
+    //
 
     async augmentTracks(tracks: TrackObject[]): Promise<CacheTrack[]> {
         const trackIds: string[] = [];
@@ -191,44 +234,76 @@ export default class Client {
         return shows.map((s) => new CacheShow(s));
     }
 
+    async augmentEpisodes(episodes: EpisodeObject[]): Promise<CacheEpisode[]> {
+        return episodes.map((e) => new CacheEpisode(e));
+    }
+
+    async augmentEpisode(episode: EpisodeObject): Promise<CacheEpisode> {
+        return (await this.augmentEpisodes([episode]))[0];
+    }
+
     async augmentArtists(artists: ArtistObject[]): Promise<CacheArtist[]> {
         return artists.map((a) => new CacheArtist(a));
     }
 
     // API Methods
-    // ---------------------------------------------------------------------------
+    // -----------------------------------------------------------------------
+    // ### Artists API #######################################################
 
     getArtists(ids: string[]): Promise<CacheArtist[]> {
         return this.api.getArtists(ids).then((r) => this.augmentArtists(r));
     }
 
-    // ### Browse API ###
+    // ### Browse API ########################################################
 
     getFeaturedPlaylists(
-        options: FeaturedPlaylistsOptions = {}
+        options: BrowseOptions = {}
     ): Promise<CachePlaylist[]> {
         return this.api
-            .getFeaturedPlaylists()
+            .getFeaturedPlaylists(options)
             .then((r) => this.augmentPlaylists(r.playlists.items));
     }
 
-    getNewReleases(): Promise<CacheAlbum[]> {
+    getNewReleases(options: BrowseOptions = {}): Promise<CacheAlbum[]> {
         return this.api
-            .getNewReleases()
-            .then((r) => this.augmentAlbums(r.albums.items));
+            .getNewReleases(options)
+            .then((r) => this.augmentAlbums(r.items));
     }
 
-    // ### Library API ###
+    // ### Follow API ########################################################
 
-    getUserSavedShows(
-        options: UserSavedShowsOptions = {}
-    ): Promise<CacheShow[]> {
+    getMyFollowedArtists(
+        options: {
+            after?: string;
+            limit?: number;
+        } = {}
+    ): Promise<CacheArtist[]> {
         return this.api
-            .getUserSavedShows(options)
+            .getMyFollowedArtists()
+            .then((page) => this.augmentArtists(page.items));
+    }
+
+    // ### Library API #######################################################
+
+    getUserSavedShows(): Promise<CacheShow[]> {
+        return this.api
+            .getUserSavedShows({ limit: 50 })
             .then((r) => this.augmentShows(r.items.map((entry) => entry.show)));
     }
 
-    // ### Personalization API ###
+    getUserSavedTracks(): Promise<CacheTrack[]> {
+        return this.api
+            .getUserSavedTracks({ limit: 50 })
+            .then((page) => this.augmentTracks(page.items.map((x) => x.track)));
+    }
+
+    getUserSavedAlbums(): Promise<CacheAlbum[]> {
+        return this.api
+            .getUserSavedAlbums({ limit: 50 })
+            .then((page) => this.augmentAlbums(page.items.map((x) => x.album)));
+    }
+
+    // ### Personalization API ###############################################
 
     getUserTopArtists(): Promise<CacheArtist[]> {
         return this.api
@@ -242,15 +317,35 @@ export default class Client {
             .then((r) => this.augmentTracks(r.items));
     }
 
-    // ### Player API ###
+    // ### Player API ########################################################
 
-    getUserCurrentlyPlayingTrack(): Promise<CacheTrack> {
-        return this.api
-            .getUserCurrentlyPlayingTrack({ market: "from_token" })
-            .then((t) => this.augmentTrack(t.item));
+    async getUserCurrentlyPlayingTrack(): Promise<
+        null | CacheTrack | CacheEpisode
+    > {
+        const playing = await this.api.getUserCurrentlyPlayingTrack({
+            market: "from_token",
+        });
+
+        if (playing.item === null) {
+            return null;
+        } else if (playing.item.type === "track") {
+            return this.augmentTrack(playing.item);
+        } else if (playing.item.type === "episode") {
+            return this.augmentEpisode(playing.item);
+        } else {
+            assertUnreachable();
+        }
     }
 
-    // ### Search API ###
+    getMyPlayer(): Promise<CurrentlyPlayingContextObject> {
+        return this.api.getMyPlayer();
+    }
+
+    getMyPlayerDevices(): Promise<DeviceObject[]> {
+        return this.api.getMyPlayerDevices();
+    }
+
+    // ### Search API ########################################################
 
     async searchArtists(
         kwds: Omit<SearchKwds, "type">
@@ -362,7 +457,71 @@ export default class Client {
         return playables;
     }
 
-    // ### Additional "Get Any" Methods ###
+    // ### Shows API #########################################################
+
+    getShowEpisodes(
+        showId: string,
+        options: MarketPageOptions = {}
+    ): Promise<CacheEpisode[]> {
+        return this.api
+            .getShowEpisodes(showId, options)
+            .then((page) => this.augmentEpisodes(page.items));
+    }
+
+    async getUnfinishedShowEpisodes(
+        showId: string,
+        limit: number,
+        pageSize: number = 50
+    ): Promise<CacheEpisode[]> {
+        assertBounds("limit", limit, 1, 10);
+        const log = this.log.childFor(this.getUnfinishedShowEpisodes, {
+            showId,
+            limit,
+            pageSize,
+        });
+        // TODO This can be MUCH better...
+        const page = await this.api.getShowEpisodes(showId, {
+            limit: pageSize,
+        });
+        const unfinished = page.items.filter(isUnfinished);
+
+        if (unfinished.length === limit) {
+            log.debug(`Found EXACT limit of unfinished shows`, {
+                returning: limit,
+                total: page.total,
+            });
+            return this.augmentEpisodes(unfinished);
+        }
+
+        if (unfinished.length > limit) {
+            log.debug(`Found MORE than limit of unfinished shows`, {
+                returning: limit,
+                total: page.total,
+            });
+            return this.augmentEpisodes(unfinished.slice(0, limit));
+        }
+
+        // We didn't find enough to hit the limit...
+
+        // Maybe there weren't any more...?
+        if (page.total <= pageSize) {
+            // No more! Listened to them all!
+            log.debug(`Didn't hit limit, but no more to check`, {
+                returning: unfinished.length,
+                total: page.total,
+            });
+        } else {
+            // There might be more :/
+            log.warn(`Didn't hit limit, could scan more`, {
+                returning: unfinished.length,
+                total: page.total,
+            });
+        }
+
+        return this.augmentEpisodes(unfinished);
+    }
+
+    // ### Additional "Get Any" Methods ######################################
     //
     // Used to serve empty queries for a specific playable type from Genie —
     // "play a X" sort of things.
@@ -405,8 +564,16 @@ export default class Client {
         return this.getAnyTracks();
     }
 
+    // Playback Device Methods
+    // -----------------------------------------------------------------------
+    //
+    // Used to manage "devices" that Spotify can play on — desktop app, mobile
+    // app, smart speaker (spotifyd), etc.
+    //
+
     // Genie Methods
     // -----------------------------------------------------------------------
+    // ### Queries ###########################################################
 
     async get_playable(
         params: Params,
@@ -515,19 +682,155 @@ export default class Client {
     }
 
     get_get_user_top_tracks(): Promise<Array<{ song: ThingTrack }>> {
+        // TODO https://api.spotify.com/v1/me/top/tracks?limit=20&time_range=short_term
         return this.getUserTopTracks().then((tracks) =>
             tracks.map((track) => ({ song: track.toThing() }))
         );
     }
 
-    get_get_currently_playing(): Promise<ThingTrack> {
-        return this.getUserCurrentlyPlayingTrack()
-            .catch((reason: any) => {
-                if (reason instanceof SyntaxError) {
-                    throw new ThingError("No song playing", "no_song_playing");
-                }
+    // TODO Ask Gio about returning `null`
+    async get_get_currently_playing(): Promise<
+        null | ThingTrack | ThingEpisode
+    > {
+        let response: null | CacheTrack | CacheEpisode;
+
+        try {
+            response = await this.getUserCurrentlyPlayingTrack();
+        } catch (reason: any) {
+            if (isJSONParseEmptyInputError(reason)) {
+                throw new ThingError("No song playing", "no_song_playing");
+            }
+            throw reason;
+        }
+
+        if (response === null) {
+            return null;
+        }
+        return response.toThing();
+    }
+
+    async get_get_play_info(): Promise<
+        undefined | CurrentlyPlayingContextObject
+    > {
+        let playInfo: CurrentlyPlayingContextObject;
+        try {
+            playInfo = await this.getMyPlayer();
+        } catch (reason: any) {
+            if (isJSONParseEmptyInputError(reason)) {
+                // Follows the previous implementation:
+                //
+                // https://github.com/stanford-oval/thingpedia-common-devices/blob/4c20248f87d000be1aef906d34b74a820aa03788/main/com.spotify/index.js#L164
+                //
+                return undefined;
+            } else {
                 throw reason;
-            })
-            .then((track) => track.toThing());
+            }
+        }
+        return playInfo;
+    }
+
+    async get_get_available_devices(): Promise<DeviceObject[]> {
+        if (isTestMode()) {
+            // TODO This is weird like this...
+            //
+            // https://github.com/stanford-oval/thingpedia-common-devices/blob/4c20248f87d000be1aef906d34b74a820aa03788/main/com.spotify/index.js#L906
+            //
+            return [
+                {
+                    id: "mock",
+                    is_active: true,
+                    is_private_session: false,
+                    is_restricted: false,
+                    name: "Coolest Computer",
+                    type: "Computer",
+                    volume_percent: 100,
+                },
+            ];
+        }
+        return await this.getMyPlayerDevices();
+    }
+
+    get_get_song_from_library(
+        params: Params,
+        hints: CompiledQueryHints,
+        env: ExecEnvironment
+    ): Promise<ThingTrack[]> {
+        return this.getUserSavedTracks().then((list) =>
+            list.map((item) => item.toThing())
+        );
+    }
+
+    get_get_album_from_library(
+        params: Params,
+        hints: CompiledQueryHints,
+        env: ExecEnvironment
+    ): Promise<ThingAlbum[]> {
+        return this.getUserSavedAlbums().then((list) =>
+            list.map((item) => item.toThing())
+        );
+    }
+
+    get_get_show_from_library(
+        params: Params,
+        hints: CompiledQueryHints,
+        env: ExecEnvironment
+    ): Promise<ThingShow[]> {
+        return this.getUserSavedShows().then((list) =>
+            list.map((item) => item.toThing())
+        );
+    }
+
+    get_get_artist_from_library(
+        params: Params,
+        hints: CompiledQueryHints,
+        env: ExecEnvironment
+    ): Promise<ThingArtist[]> {
+        return this.getMyFollowedArtists().then((list) =>
+            list.map((item) => item.toThing())
+        );
+    }
+
+    // ### Actions ###########################################################
+
+    getActiveDevice(env: ExecEnvironment): Promise<DeviceObject> {
+        throw new ThingError(`Not Implemented`, "no_active_device");
+    }
+
+    async getNewQueue(env: ExecEnvironment): Promise<NewQueue> {
+        if (this.newQueues.has(env.app.uniqueId)) {
+            return this.newQueues.get(env.app.uniqueId);
+        }
+        const device = await this.getActiveDevice(env);
+        const newQueue = new NewQueue(device);
+        env.addExitProcedureHook(async () => {
+            await this.flush();
+        });
+        this.newQueues.set(env.app.uniqueId, newQueue);
+        return newQueue;
+    }
+
+    async do_play(
+        { playable }: { playable: Value.Entity },
+        env: ExecEnvironment
+    ): Promise<{ device: Value.Entity }> {
+        const newQueue = await this.getNewQueue(env);
+        newQueue.append(playable);
+        return { device: newQueue.deviceEntity };
+    }
+}
+
+class NewQueue {
+    public readonly playableEntities: Value.Entity[];
+
+    constructor(public readonly device: DeviceObject) {
+        this.playableEntities = [];
+    }
+
+    get deviceEntity(): Value.Entity {
+        return new Value.Entity(this.device.id, this.device.name);
+    }
+
+    append(playableEntity: Value.Entity): void {
+        this.playableEntities.push(playableEntity);
     }
 }

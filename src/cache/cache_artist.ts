@@ -1,5 +1,5 @@
 import { ArtistObject, FollowersObject, ImageObject } from "../api/objects";
-import { ThingArtist } from "../thing_types";
+import { ThingArtist } from "../things";
 import CacheEntity from "./cache_entity";
 
 export default class CacheArtist extends CacheEntity implements ArtistObject {

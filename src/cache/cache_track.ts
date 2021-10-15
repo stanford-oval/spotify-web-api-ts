@@ -10,7 +10,7 @@ import {
     TrackObject,
     TrackRestrictionObject,
 } from "../api/objects";
-import { ThingTrack } from "../thing_types";
+import { ThingTrack } from "../things";
 import CacheEntity from "./cache_entity";
 
 export const DEFAULT_AUDIO_FEATURE = 50;

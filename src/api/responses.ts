@@ -1,7 +1,7 @@
 import {
+    AlbumObject,
     ArtistObject,
-    CursorPagingObject,
-    ExternalUrlObject,
+    PagingObject,
     ShowObject,
     SimplifiedAlbumObject,
     SimplifiedEpisodeObject,
@@ -11,21 +11,22 @@ import {
 } from "./objects";
 
 export interface SearchResponse {
-    albums?: CursorPagingObject<SimplifiedAlbumObject>;
-    artists?: CursorPagingObject<ArtistObject>;
-    episodes?: CursorPagingObject<SimplifiedEpisodeObject>;
-    playlists?: CursorPagingObject<SimplifiedPlaylistObject>;
-    shows?: CursorPagingObject<SimplifiedShowObject>;
-    tracks?: CursorPagingObject<TrackObject>;
+    albums?: PagingObject<SimplifiedAlbumObject>;
+    artists?: PagingObject<ArtistObject>;
+    episodes?: PagingObject<SimplifiedEpisodeObject>;
+    playlists?: PagingObject<SimplifiedPlaylistObject>;
+    shows?: PagingObject<SimplifiedShowObject>;
+    tracks?: PagingObject<TrackObject>;
 }
 
 export interface FeaturedPlaylistsResponse {
     message: string;
-    playlists: CursorPagingObject<SimplifiedPlaylistObject>;
+    playlists: PagingObject<SimplifiedPlaylistObject>;
 }
 
-export interface NewReleasesResponse {
-    albums: CursorPagingObject<SimplifiedAlbumObject>;
+export interface UserSavedAlbum {
+    added_at: string;
+    album: AlbumObject;
 }
 
 export interface UserSavedShow {
@@ -33,15 +34,7 @@ export interface UserSavedShow {
     show: ShowObject;
 }
 
-export interface UserCurrentlyPlayingTrackResponse {
-    context: {
-        external_urls: ExternalUrlObject;
-        href: string;
-        type: string; // playlist, etc...
-        uri: string;
-    };
-    timestamp: number;
-    progress_ms: number;
-    is_playing: boolean;
-    item: TrackObject;
+export interface UserSavedTrack {
+    added_at: string;
+    track: TrackObject;
 }

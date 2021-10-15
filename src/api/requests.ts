@@ -1,12 +1,14 @@
-export interface CursorOptions {
+export interface PageOptions {
     limit?: number;
     offset?: number;
 }
 
-export interface FeaturedPlaylistsOptions extends CursorOptions {
+export interface MarketPageOptions extends PageOptions {
+    market?: string;
+}
+
+export interface BrowseOptions extends PageOptions {
     country?: string;
     locale?: string;
     timestamp?: string | Date;
 }
-
-export interface UserSavedShowsOptions extends CursorOptions {}

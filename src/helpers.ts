@@ -1,7 +1,11 @@
 import { strict as assert } from "assert";
 
-import { SimplifiedAlbumObject } from "./api/objects";
-import { ThingPlayable } from "./thing_types";
+import { SimplifiedAlbumObject, SimplifiedEpisodeObject } from "./api/objects";
+import { PageOptions } from "./api/requests";
+import { ThingPlayable } from "./things";
+
+// Helper Functions
+// ===========================================================================
 
 export function* iterArtistIdsForAlbums(
     albums: SimplifiedAlbumObject[]
@@ -17,6 +21,51 @@ export function artistIdsForAlbums(albums: SimplifiedAlbumObject[]): string[] {
     return Array.from(new Set(iterArtistIdsForAlbums(albums)));
 }
 
+/**
+ * Attempts to tell if a `reason` that came through a promise rejection is due
+ * to trying to [[JSON.parse]] the empty string, like:
+ *
+ *      > JSON.parse("")
+ *      Uncaught SyntaxError: Unexpected end of JSON input
+ *
+ * We can't really be _sure_ that [[JSON.parse]] and the empty string are to
+ * blame — there's likely other conditions that cause the same error — but it's
+ * the best I think we can do.
+ *
+ * The whole reason this exists is because I noticed this late in the initial
+ * implementation (2021-10-14), and [[Api.get]] currently does a cast to a
+ * caller-provided response type `T`. There is no response inspection or
+ * validation happening; we're looking the other way / being efficient.
+ *
+ * It would be a pain to switch [[Api.get]] to resolve `undefined|T` because I'd
+ * have to go throw checks in all over the place.
+ *
+ * Also we _still_ wouldn't know the HTTP response code
+ * ([[thingpedia.Helpers.Http]] does not expose the response code for `2xx`
+ * statuses), and so would not be able to flag the `200` / `204` or whatever
+ * differences, leading me to want to fix this all together at some later point.
+ *
+ * @param reason A promise rejection reason.
+ * @returns `true` if the `reason` may have come from `JSON.parse("")`.
+ */
+export function isJSONParseEmptyInputError(reason: any): boolean {
+    return (
+        reason instanceof SyntaxError &&
+        reason.message === "Unexpected end of JSON input"
+    );
+}
+
+// Assertion Helper Functions
+// ---------------------------------------------------------------------------
+
+export function assertMin(name: string, value: number, min: number): void {
+    assert(value >= min, `Expected ${name} ≥ ${min}, given ${name} = ${value}`);
+}
+
+export function assertMax(name: string, value: number, max: number): void {
+    assert(value <= max, `Expected ${name} ≤ ${max}, given ${name} = ${value}`);
+}
+
 export function assertBounds(
     name: string,
     value: number,
@@ -27,6 +76,44 @@ export function assertBounds(
         min <= value && value <= max,
         `Expected ${min} ≤ ${name} ≤ ${max}, given ${name} = ${value}`
     );
+}
+
+export function assertUnreachable(): never {
+    assert(false, "Expected to be unreachable");
+}
+
+export function checkPageOptions(
+    options: PageOptions,
+    {
+        min = 1,
+        max = 50,
+    }: {
+        min?: number;
+        max?: number;
+    } = {}
+): void {
+    if (options.limit !== undefined) {
+        assertBounds("options.limit", options.limit, min, max);
+    }
+    if (options.offset !== undefined) {
+        assertMin("options.offset", options.offset, 0);
+    }
+}
+
+// Functions Copied/Adapted From Skill
+// ---------------------------------------------------------------------------
+//
+// Used to be in `thingpedia-common-devices/main/com.spotify/index.js`, see
+//
+// https://github.com/stanford-oval/thingpedia-common-devices/blob/4c20248f87d000be1aef906d34b74a820aa03788/main/com.spotify/index.js
+//
+
+export function isUnfinished(episode: SimplifiedEpisodeObject): boolean {
+    return !episode?.resume_point?.fully_played;
+}
+
+export function isTestMode(): boolean {
+    return process.env.TEST_MODE === "1";
 }
 
 export function entityMatchScore(

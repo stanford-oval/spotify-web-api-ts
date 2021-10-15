@@ -1,5 +1,5 @@
 import {
-    CursorPagingObject,
+    PagingObject,
     ExternalUrlObject,
     FollowersObject,
     ImageObject,
@@ -9,7 +9,7 @@ import {
     PublicUserObject,
     SimplifiedPlaylistObject,
 } from "../api/objects";
-import { ThingPlaylist } from "../thing_types";
+import { ThingPlaylist } from "../things";
 import CacheEntity from "./cache_entity";
 
 function isPlaylistObject(
@@ -41,7 +41,7 @@ export default class CachePlaylist
     public: null | boolean;
     snapshot_id: string;
     followers?: FollowersObject;
-    tracks: PlaylistTracksRefObject | CursorPagingObject<PlaylistTrackObject>;
+    tracks: PlaylistTracksRefObject | PagingObject<PlaylistTrackObject>;
 
     // Construction
     // =======================================================================
