@@ -76,8 +76,8 @@ export default class Client {
     private static readonly log = LOG.childFor(Client);
 
     public readonly api: Api;
-    private _queueBuilders: Map<string, QueueBuilder>;
-    private _backgroundFlushes: Map<string, QueueBuilder>;
+    private _pendingBuilders: Map<string, QueueBuilder>;
+    private _backgroundBuilders: Map<string, QueueBuilder>;
 
     public readonly augment: Augment;
     public readonly albums: Albums;
@@ -97,8 +97,8 @@ export default class Client {
         redis?: RedisClientType
     ) {
         this.api = new Api({ useOAuth2 });
-        this._queueBuilders = new Map<string, QueueBuilder>();
-        this._backgroundFlushes = new Map<string, QueueBuilder>();
+        this._pendingBuilders = new Map<string, QueueBuilder>();
+        this._backgroundBuilders = new Map<string, QueueBuilder>();
 
         this.augment = new Augment(this.api);
 
@@ -197,7 +197,131 @@ export default class Client {
         return searchMethod({ query, ...otherSearchKwds });
     }
 
-    // ### Additional "Get Any" Methods ######################################
+    async getActiveDevice(env: ExecWrapper): Promise<DeviceObject> {
+        const devices = await this.api.player.getDevices();
+        if (devices.length === 0) {
+            throw new ThingError("No player devices", "no_devices");
+        }
+        const activeDevice = devices.find((device) => device.is_active);
+        if (activeDevice === undefined) {
+            throw new ThingError("No active device", "no_active_device");
+        }
+        return activeDevice;
+    }
+
+    // Playback Queue Building and Flushing Instance Methods
+    // -----------------------------------------------------------------------
+
+    resolveURI(uri: string): Promise<string[]> {
+        const id = uriId(uri);
+        switch (uriType(uri)) {
+            case "track":
+            case "episode":
+                // Really shouldn't bother calling for these, but whatever we'll
+                // support them...
+                return Promise.resolve([uri]);
+            case "album":
+                return this.albums.getTrackURIs(id);
+            case "artist":
+                return this.artists.getTopTrackURIs(id);
+            case "playlist":
+                return this.playlists.getPlaylistTrackURIs(id);
+            case "show":
+                return this.shows
+                    .getUnfinishedEpisodes(id, 10)
+                    .then((episodes) => episodes.map((e) => e.uri));
+            default:
+                assertUnreachable();
+        }
+    }
+
+    protected async getQueueBuilder(env: ExecWrapper): Promise<QueueBuilder> {
+        const appId = env.app.uniqueId;
+        let builder = this._pendingBuilders.get(appId);
+        if (builder !== undefined) {
+            return builder;
+        }
+        const device = await this.getActiveDevice(env);
+        builder = new QueueBuilder(appId, device, this.resolveURI.bind(this));
+        env.addExitProcedureHook(async () => {
+            await this.flushQueueBuilder(appId);
+        });
+        this._pendingBuilders.set(appId, builder);
+        return builder;
+    }
+
+    protected async backgroundFlushQueueBuilder(builder: QueueBuilder) {
+        const log = this.log.childFor(this.backgroundFlushQueueBuilder, {
+            appId: builder.appId,
+        });
+
+        log.debug("Starting background flush...", { appId: builder.appId });
+
+        this._backgroundBuilders.set(builder.appId, builder);
+
+        for await (const uri of builder) {
+            log.debug("Adding URI to queue...", { uri });
+            this.api.player.addToQueue(builder.device.id, uri);
+        }
+
+        log.debug("Background flush done.");
+        const other = this._backgroundBuilders.get(builder.appId);
+        if (other === builder) {
+            log.debug("Removing from background flush map");
+            this._backgroundBuilders.delete(builder.appId);
+        }
+    }
+
+    protected async flushQueueBuilder(appId: any) {
+        const log = LOG.childFor(this.flushQueueBuilder, { appId });
+
+        log.debug("Flushing QueueBuilder...");
+
+        const builder = this._pendingBuilders.get(appId);
+
+        if (builder === undefined) {
+            log.warn("No QueueBuilder found for appId");
+            return;
+        }
+
+        this._pendingBuilders.delete(appId);
+
+        if (builder.isEmpty) {
+            log.error("Attempted to flush empty QueueBuilder.");
+            return;
+        }
+
+        if (builder.srcURIs.length === 1) {
+            log.debug("QueueBuilder has a single URI, playing directly.");
+            await this.api.player.play(builder.device.id, builder.srcURIs[0]);
+            return;
+        }
+
+        // const uris = await builder.popInitialURIs();
+        const uri = await builder.next();
+        if (uri.done) {
+            log.error("Unable to get next URI from QueueBuilder");
+            return;
+        }
+
+        const backgroundBuilder = this._backgroundBuilders.get(appId);
+        if (backgroundBuilder !== undefined) {
+            log.debug(
+                "A previous QueueBuilder is still flushing, canceling..."
+            );
+            backgroundBuilder.cancel();
+            this._backgroundBuilders.delete(appId);
+        }
+
+        log.debug("Playing initial URI...", { uri: uri.value });
+        await this.api.player.play(builder.device.id, uri.value);
+
+        log.debug("Kicking off background flush...");
+        this.backgroundFlushQueueBuilder(builder);
+    }
+
+    // "Get Any" Instance Methods
+    // -----------------------------------------------------------------------
     //
     // Used to serve empty queries for a specific playable type from Genie —
     // "play a X" sort of things.
@@ -469,126 +593,6 @@ export default class Client {
     }
 
     // ### Actions ###########################################################
-
-    async getActiveDevice(env: ExecWrapper): Promise<DeviceObject> {
-        const devices = await this.api.player.getDevices();
-        if (devices.length === 0) {
-            throw new ThingError("No player devices", "no_devices");
-        }
-        const activeDevice = devices.find((device) => device.is_active);
-        if (activeDevice === undefined) {
-            return devices[0];
-        }
-        return activeDevice;
-    }
-
-    resolveURI(uri: string): Promise<string[]> {
-        const id = uriId(uri);
-        switch (uriType(uri)) {
-            case "track":
-            case "episode":
-                // Really shouldn't bother calling for these, but whatever we'll
-                // support them...
-                return Promise.resolve([uri]);
-            case "album":
-                return this.albums.getTrackURIs(id);
-            case "artist":
-                return this.artists.getTopTrackURIs(id);
-            case "playlist":
-                return this.playlists.getPlaylistTrackURIs(id);
-            case "show":
-                return this.shows
-                    .getUnfinishedEpisodes(id, 10)
-                    .then((episodes) => episodes.map((e) => e.uri));
-            default:
-                assertUnreachable();
-        }
-    }
-
-    private async backgroundFlush(builder: QueueBuilder) {
-        const log = LOG.childFor(this.backgroundFlush, {
-            appId: builder.appId,
-        });
-
-        log.debug("Starting background flush...", { appId: builder.appId });
-
-        this._backgroundFlushes.set(builder.appId, builder);
-
-        for await (const uri of builder) {
-            log.debug("Adding URI to queue...", { uri });
-            this.api.player.addToQueue(builder.device.id, uri);
-        }
-
-        log.debug("Background flush done.");
-        const other = this._backgroundFlushes.get(builder.appId);
-        if (other === builder) {
-            log.debug("Removing from background flush map");
-            this._backgroundFlushes.delete(builder.appId);
-        }
-    }
-
-    private async flush(appId: any) {
-        const log = LOG.childFor(this.flush, { appId });
-
-        log.debug("Flushing QueueBuilder...");
-
-        const builder = this._queueBuilders.get(appId);
-
-        if (builder === undefined) {
-            log.warn("No QueueBuilder found for appId");
-            return;
-        }
-
-        this._queueBuilders.delete(appId);
-
-        if (builder.isEmpty) {
-            log.error("Attempted to flush empty QueueBuilder.");
-            return;
-        }
-
-        if (builder.srcURIs.length === 1) {
-            log.debug("QueueBuilder has a single URI, playing directly.");
-            await this.api.player.play(builder.device.id, builder.srcURIs[0]);
-            return;
-        }
-
-        // const uris = await builder.popInitialURIs();
-        const uri = await builder.next();
-        if (uri.done) {
-            log.error("Unable to get next URI from QueueBuilder");
-            return;
-        }
-
-        const backgroundBuilder = this._backgroundFlushes.get(appId);
-        if (backgroundBuilder !== undefined) {
-            log.debug(
-                "A previous QueueBuilder is still flushing, canceling..."
-            );
-            backgroundBuilder.cancel();
-            this._backgroundFlushes.delete(appId);
-        }
-
-        log.debug("Playing initial URI...", { uri: uri.value });
-        await this.api.player.play(builder.device.id, uri.value);
-
-        log.debug("Kicking off background flush...");
-        this.backgroundFlush(builder);
-    }
-
-    async getQueueBuilder(env: ExecWrapper): Promise<QueueBuilder> {
-        const appId = env.app.uniqueId;
-        let builder = this._queueBuilders.get(appId);
-        if (builder !== undefined) {
-            return builder;
-        }
-        const device = await this.getActiveDevice(env);
-        builder = new QueueBuilder(appId, device, this.resolveURI.bind(this));
-        env.addExitProcedureHook(async () => {
-            await this.flush(appId);
-        });
-        this._queueBuilders.set(appId, builder);
-        return builder;
-    }
 
     async do_play(
         { playable }: { playable: Value.Entity },
