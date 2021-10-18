@@ -33,24 +33,42 @@ export default class PlayerApi extends BaseApi {
         return this._http.getList<DeviceObject>("/v1/me/player/devices");
     }
 
-    play(
-        device_id: string,
-        uris: string | string[],
-        options: {
-            offset?: number;
-            position_ms?: number;
-        } = {}
-    ): Promise<null> {
-        const args: Record<string, any> = { device_id, ...options };
-        if (Array.isArray(uris)) {
-            args.uris = uris;
-        } else if (isSingularURI(uris)) {
-            args.uris = [uris];
-        } else {
-            args.context_uri = uris;
+    play({
+        device_id,
+        uris,
+        offset,
+        position_ms,
+    }: {
+        device_id?: string;
+        uris?: string | string[];
+        offset?: number;
+        position_ms?: number;
+    } = {}): Promise<null> {
+        let body: undefined | Record<string, any> = undefined;
+
+        if (uris !== undefined) {
+            body = {};
+            if (Array.isArray(uris)) {
+                body.uris = uris;
+            } else if (isSingularURI(uris)) {
+                body.uris = [uris];
+            } else {
+                body.context_uri = uris;
+                if (offset !== undefined) {
+                    body.offset = offset;
+                }
+                if (position_ms !== undefined) {
+                    body.position_ms = position_ms;
+                }
+            }
         }
 
-        return this._http.put<null>("/v1/me/player/play", args);
+        return this._http.request<null>({
+            method: "PUT",
+            path: "/v1/me/player/play",
+            query: { device_id },
+            body,
+        });
     }
 
     addToQueue(deviceId: string, uri: string): Promise<null> {
@@ -58,6 +76,52 @@ export default class PlayerApi extends BaseApi {
             method: "POST",
             path: "/v1/me/player/queue",
             query: { device_id: deviceId, uri },
+        });
+    }
+
+    pause({ device_id }: { device_id?: string } = {}): Promise<null> {
+        return this._http.request<null>({
+            method: "PUT",
+            path: "/v1/me/player/pause",
+            query: { device_id },
+        });
+    }
+
+    next({ device_id }: { device_id?: string } = {}): Promise<null> {
+        return this._http.request<null>({
+            method: "POST",
+            path: "/v1/me/player/next",
+            query: { device_id },
+        });
+    }
+
+    previous({ device_id }: { device_id?: string } = {}): Promise<null> {
+        return this._http.request<null>({
+            method: "POST",
+            path: "/v1/me/player/previous",
+            query: { device_id },
+        });
+    }
+
+    shuffle(
+        state: boolean,
+        options: { device_id?: string } = {}
+    ): Promise<null> {
+        return this._http.request<null>({
+            method: "PUT",
+            path: "/v1/me/player/shuffle",
+            query: { state, ...options },
+        });
+    }
+
+    repeat(
+        state: "track" | "context" | "off",
+        options: { device_id?: string } = {}
+    ): Promise<null> {
+        return this._http.request<null>({
+            method: "PUT",
+            path: "/v1/me/player/repeat",
+            query: { state, ...options },
         });
     }
 }

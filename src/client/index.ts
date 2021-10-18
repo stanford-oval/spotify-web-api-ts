@@ -69,6 +69,10 @@ const LOG = Logging.get(__filename);
 // ===========================================================================
 
 type Params = Record<string, any>;
+interface State {
+    id: string;
+    product?: string;
+}
 
 // Class Definition
 // ===========================================================================
@@ -76,6 +80,7 @@ export default class Client {
     private static readonly log = LOG.childFor(Client);
 
     public readonly api: Api;
+    public readonly state: State;
     private _pendingBuilders: Map<string, QueueBuilder>;
     private _backgroundBuilders: Map<string, QueueBuilder>;
 
@@ -92,10 +97,16 @@ export default class Client {
     public readonly shows: Shows;
     public readonly tracks: Tracks;
 
-    constructor(
-        useOAuth2: HTTPRequestOptions["useOAuth2"],
-        redis?: RedisClientType
-    ) {
+    constructor({
+        state,
+        useOAuth2,
+        redis,
+    }: {
+        state: State;
+        useOAuth2: HTTPRequestOptions["useOAuth2"];
+        redis?: RedisClientType;
+    }) {
+        this.state = state;
         this.api = new Api({ useOAuth2 });
         this._pendingBuilders = new Map<string, QueueBuilder>();
         this._backgroundBuilders = new Map<string, QueueBuilder>();
@@ -122,6 +133,10 @@ export default class Client {
 
     private get log(): Logger {
         return Client.log;
+    }
+
+    get isTestMode(): boolean {
+        return process.env.TEST_MODE === "1";
     }
 
     buildQuery(
@@ -293,7 +308,10 @@ export default class Client {
 
         if (builder.srcURIs.length === 1) {
             log.debug("QueueBuilder has a single URI, playing directly.");
-            await this.api.player.play(builder.device.id, builder.srcURIs[0]);
+            await this.api.player.play({
+                device_id: builder.device.id,
+                uris: builder.srcURIs[0],
+            });
             return;
         }
 
@@ -314,7 +332,10 @@ export default class Client {
         }
 
         log.debug("Playing initial URI...", { uri: uri.value });
-        await this.api.player.play(builder.device.id, uri.value);
+        await this.api.player.play({
+            device_id: builder.device.id,
+            uris: uri.value,
+        });
 
         log.debug("Kicking off background flush...");
         this.backgroundFlushQueueBuilder(builder);
@@ -598,8 +619,222 @@ export default class Client {
         { playable }: { playable: Value.Entity },
         env: ExecWrapper
     ): Promise<{ device: Value.Entity }> {
+        this._checkPremium();
         const builder = await this.getQueueBuilder(env);
         builder.push(playable);
         return { device: builder.deviceEntity };
+    }
+
+    async do_add_item_to_library({
+        playable,
+    }: {
+        playable: any;
+    }): Promise<void> {
+        const log = this.log.childFor(this.do_add_item_to_library);
+        if (this.isTestMode) {
+            log.debug("In test mode, aborting.");
+            return;
+        }
+        if (!playable || !(playable instanceof Value.Entity)) {
+            throw new ThingError("No item to add", "no_item_to_add");
+        }
+        const id = uriId(playable.value);
+        const type = uriType(playable.value);
+        let method: (id: string) => Promise<null>;
+
+        switch (type) {
+            case "album":
+                method = this.api.library.putAlbum;
+                break;
+            case "track":
+                method = this.api.library.putTrack;
+                break;
+            case "show":
+                method = this.api.library.putShow;
+                break;
+            case "episode":
+                method = this.api.library.putEpisode;
+                break;
+            default:
+                throw new ThingError(
+                    `Can not add ${type} to library`,
+                    "disallowed_action"
+                );
+        }
+
+        try {
+            await method.bind(this.api.library)(id);
+        } catch (reason) {
+            throw new ThingError(
+                `Failed to add ${type} ${id} to library`,
+                "disallowed_action"
+            );
+        }
+    }
+
+    async do_add_artist_to_library({ artist }: { artist: any }) {
+        const log = this.log.childFor(this.do_add_artist_to_library);
+        if (this.isTestMode) {
+            log.debug("In test mode, aborting.");
+            return;
+        }
+        if (!artist || !(artist instanceof Value.Entity)) {
+            throw new ThingError("No artist to add", "no_item_to_add");
+        }
+        const id = uriId(artist.value);
+        const type = uriType(artist.value);
+        if (type !== "artist") {
+            throw new ThingError(
+                `Not an artist: ${artist}`,
+                "disallowed_action"
+            );
+        }
+        try {
+            await this.api.follow.putArtist(id);
+        } catch (error: any) {
+            throw new ThingError(
+                `Failed to follow artist ${artist}`,
+                "disallowed_action"
+            );
+        }
+    }
+
+    async do_create_playlist({ name }: { name: string }): Promise<void> {
+        const log = this.log.childFor(this.do_create_playlist);
+        if (this.isTestMode) {
+            log.debug("In test mode, aborting.");
+            return;
+        }
+        try {
+            await this.api.playlists.create(this.state.id, name);
+        } catch (error) {
+            throw new ThingError(
+                `Failed to create playlist`,
+                "disallowed_action"
+            );
+        }
+    }
+
+    async do_player_pause(params: Params, env: ExecWrapper) {
+        const log = this.log.childFor(this.do_player_pause);
+        return this._doPlayerAction(log, this.api.player.pause, env);
+    }
+
+    async do_player_play(params: Params, env: ExecWrapper) {
+        const log = this.log.childFor(this.do_player_play);
+        return this._doPlayerAction(log, this.api.player.play, env);
+    }
+
+    async do_player_next(params: Params, env: ExecWrapper) {
+        const log = this.log.childFor(this.do_player_next);
+        return this._doPlayerAction(log, this.api.player.next, env);
+    }
+
+    async do_player_previous(params: Params, env: ExecWrapper) {
+        const log = this.log.childFor(this.do_player_next);
+        return this._doPlayerAction(log, this.api.player.previous, env);
+    }
+
+    async do_player_shuffle(
+        { shuffle }: { shuffle: "on" | "off" },
+        env: ExecWrapper
+    ) {
+        const log = this.log.childFor(this.do_player_shuffle, { shuffle });
+        log.debug("Setting shuffle...");
+        this._checkPremium();
+        const device = await this.getActiveDevice(env);
+        try {
+            await this.api.player.shuffle(shuffle === "on", {
+                device_id: device.id,
+            });
+        } catch (error) {
+            throw new ThingError(`Failed to set shuffle`, "disallowed_action");
+        }
+    }
+
+    async do_player_repeat(
+        {
+            repeat,
+        }: {
+            repeat: "track" | "context" | "off";
+        },
+        env: ExecWrapper
+    ) {
+        const log = this.log.childFor(this.do_player_repeat, { repeat });
+        log.debug("Setting repeat...");
+        this._checkPremium();
+        const device = await this.getActiveDevice(env);
+        try {
+            await this.api.player.repeat(repeat, {
+                device_id: device.id,
+            });
+        } catch (error) {
+            throw new ThingError(`Failed to set repeat`, "disallowed_action");
+        }
+    }
+
+    async do_add_song_to_playlist({
+        song,
+        playlist,
+    }: {
+        song: Value.Entity;
+        playlist: string;
+    }) {
+        const log = this.log.childFor(this.do_add_song_to_playlist, {
+            song,
+            playlist,
+        });
+        if (this.isTestMode) {
+            log.debug("In test mode, aborting.");
+            return;
+        }
+
+        const playlistId = await this.playlists.findMyId(playlist);
+
+        if (playlistId === null) {
+            log.error("Failed to find playlist");
+            throw new ThingError(
+                `Failed to find playlist ${JSON.stringify(playlist)}`,
+                "no_playlist"
+            );
+        }
+
+        await this.api.playlists.add(playlistId, song.value);
+    }
+
+    protected _checkPremium() {
+        if (
+            this.state.product !== "premium" &&
+            this.state.product !== undefined
+        ) {
+            throw new ThingError(
+                "Premium account required",
+                "non_premium_account"
+            );
+        }
+    }
+
+    protected async _doPlayerAction(
+        log: Logger,
+        method: ({ device_id }: { device_id?: string }) => Promise<null>,
+        env: ExecWrapper
+    ): Promise<void> {
+        if (this.isTestMode) {
+            log.debug("In test mode, aborting.");
+            return;
+        }
+
+        this._checkPremium();
+
+        const device = await this.getActiveDevice(env);
+
+        try {
+            await method.bind(this.api.player)({ device_id: device.id });
+        } catch (error) {
+            throw new ThingError(
+                `Failed to pause playback`,
+                "disallowed_action"
+            );
+        }
     }
 }
