@@ -165,6 +165,9 @@ export interface PagingObject<TItem> {
 
 export function isPagingObject(x: any): x is PagingObject<unknown> {
     return (
+        typeof x === "object" &&
+        x !== undefined &&
+        x !== null &&
         x.hasOwnProperty("total") &&
         typeof x.total === "number" &&
         x.hasOwnProperty("items") &&

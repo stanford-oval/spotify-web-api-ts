@@ -15,10 +15,13 @@ import {
 // ---------------------------------------------------------------------------
 
 import {
+    AlbumObject,
     ArtistObject,
     CurrentlyPlayingContextObject,
     DeviceObject,
     EpisodeObject,
+    PagingObject,
+    PlaylistTrackObject,
     SimplifiedAlbumObject,
     SimplifiedPlaylistObject,
     SimplifiedShowObject,
@@ -26,6 +29,7 @@ import {
 } from "./api/objects";
 import CacheTrack from "./cache/cache_track";
 import {
+    ExecWrapper,
     ThingAlbum,
     ThingArtist,
     ThingEpisode,
@@ -50,10 +54,13 @@ import {
     isJSONParseEmptyInputError,
     isTestMode,
     isUnfinished,
+    uriId,
+    uriType,
 } from "./helpers";
 import Logging from "./logging";
 import { Logger } from "./logging/logger";
 import { Value } from "thingpedia";
+import QueueBuilder from "./queue_builder";
 
 // Constants
 // ===========================================================================
@@ -72,14 +79,16 @@ export default class Client {
     private static readonly log = LOG.childFor(Client);
 
     public readonly api: Api;
-    private newQueues: Map<any, NewQueue>;
+    private _queueBuilders: Map<string, QueueBuilder>;
+    private _backgroundFlushes: Map<string, QueueBuilder>;
 
     constructor(
         useOAuth2: HTTPRequestOptions["useOAuth2"],
         redis?: RedisClientType
     ) {
         this.api = new Api({ useOAuth2 });
-        this.newQueues = new Map<any, NewQueue>();
+        this._queueBuilders = new Map<string, QueueBuilder>();
+        this._backgroundFlushes = new Map<string, QueueBuilder>();
     }
 
     // Instance Methods
@@ -224,6 +233,10 @@ export default class Client {
         return fullAlbums.map((a) => new CacheAlbum(a));
     }
 
+    async augmentAlbum(album: AlbumObject): Promise<CacheAlbum> {
+        return new CacheAlbum(album);
+    }
+
     async augmentPlaylists(
         playlists: SimplifiedPlaylistObject[]
     ): Promise<CachePlaylist[]> {
@@ -246,12 +259,47 @@ export default class Client {
         return artists.map((a) => new CacheArtist(a));
     }
 
+    async augmentArtist(artist: ArtistObject): Promise<CacheArtist> {
+        return new CacheArtist(artist);
+    }
+
     // API Methods
     // -----------------------------------------------------------------------
+    // ### Albums API ###
+
+    getAlbum(id: string): Promise<CacheAlbum> {
+        return this.api
+            .getAlbum(id, { market: "from_token" })
+            .then((album) => this.augmentAlbum(album));
+    }
+
+    getAlbumTrackURIs(id: string): Promise<string[]> {
+        return this.getAlbum(id).then((album) =>
+            album.tracks.items.map((t) => t.uri)
+        );
+    }
+
     // ### Artists API #######################################################
 
     getArtists(ids: string[]): Promise<CacheArtist[]> {
-        return this.api.getArtists(ids).then((r) => this.augmentArtists(r));
+        return this.api.getArtists(ids).then(this.augmentArtists.bind(this));
+    }
+
+    getArtist(id: string): Promise<CacheArtist> {
+        return this.api.getArtist(id).then(this.augmentArtist.bind(this));
+    }
+
+    getArtistTopTracks(id: string): Promise<CacheTrack[]> {
+        return this.api
+            .getArtistTopTracks(id)
+            .then(this.augmentTracks.bind(this));
+    }
+
+    getArtistTopTrackURIs(id: string): Promise<string[]> {
+        // TODO This can potentially be done more efficiently
+        return this.getArtistTopTracks(id).then((tracks) =>
+            tracks.map((t) => t.uri)
+        );
     }
 
     // ### Browse API ########################################################
@@ -319,10 +367,8 @@ export default class Client {
 
     // ### Player API ########################################################
 
-    async getUserCurrentlyPlayingTrack(): Promise<
-        null | CacheTrack | CacheEpisode
-    > {
-        const playing = await this.api.getUserCurrentlyPlayingTrack({
+    async getCurrentlyPlaying(): Promise<null | CacheTrack | CacheEpisode> {
+        const playing = await this.api.getCurrentlyPlaying({
             market: "from_token",
         });
 
@@ -337,12 +383,28 @@ export default class Client {
         }
     }
 
-    getMyPlayer(): Promise<CurrentlyPlayingContextObject> {
-        return this.api.getMyPlayer();
+    getPlayer(): Promise<CurrentlyPlayingContextObject> {
+        return this.api.getPlayer();
     }
 
-    getMyPlayerDevices(): Promise<DeviceObject[]> {
-        return this.api.getMyPlayerDevices();
+    getPlayerDevices(): Promise<DeviceObject[]> {
+        return this.api.getPlayerDevices();
+    }
+
+    // ### Playlist API ######################################################
+
+    getPlaylist(id: string): Promise<CachePlaylist> {
+        throw new Error(`Not Implemented`);
+    }
+
+    getPlaylistTracks(id: string): Promise<PagingObject<PlaylistTrackObject>> {
+        return this.api.getPlaylistTracks(id, { market: "from_token" });
+    }
+
+    getPlaylistTrackURIs(id: string): Promise<string[]> {
+        return this.getPlaylistTracks(id).then((page) =>
+            page.items.map((t) => t.track.uri)
+        );
     }
 
     // ### Search API ########################################################
@@ -695,7 +757,7 @@ export default class Client {
         let response: null | CacheTrack | CacheEpisode;
 
         try {
-            response = await this.getUserCurrentlyPlayingTrack();
+            response = await this.getCurrentlyPlaying();
         } catch (reason: any) {
             if (isJSONParseEmptyInputError(reason)) {
                 throw new ThingError("No song playing", "no_song_playing");
@@ -714,7 +776,7 @@ export default class Client {
     > {
         let playInfo: CurrentlyPlayingContextObject;
         try {
-            playInfo = await this.getMyPlayer();
+            playInfo = await this.getPlayer();
         } catch (reason: any) {
             if (isJSONParseEmptyInputError(reason)) {
                 // Follows the previous implementation:
@@ -747,7 +809,7 @@ export default class Client {
                 },
             ];
         }
-        return await this.getMyPlayerDevices();
+        return await this.getPlayerDevices();
     }
 
     get_get_song_from_library(
@@ -792,45 +854,132 @@ export default class Client {
 
     // ### Actions ###########################################################
 
-    getActiveDevice(env: ExecEnvironment): Promise<DeviceObject> {
-        throw new ThingError(`Not Implemented`, "no_active_device");
+    async getActiveDevice(env: ExecWrapper): Promise<DeviceObject> {
+        const devices = await this.api.getPlayerDevices();
+        if (devices.length === 0) {
+            throw new ThingError("No player devices", "no_devices");
+        }
+        const activeDevice = devices.find((device) => device.is_active);
+        if (activeDevice === undefined) {
+            return devices[0];
+        }
+        return activeDevice;
     }
 
-    async getNewQueue(env: ExecEnvironment): Promise<NewQueue> {
-        if (this.newQueues.has(env.app.uniqueId)) {
-            return this.newQueues.get(env.app.uniqueId);
+    resolveURI(uri: string): Promise<string[]> {
+        const id = uriId(uri);
+        switch (uriType(uri)) {
+            case "track":
+            case "episode":
+                // Really shouldn't bother calling for these, but whatever we'll
+                // support them...
+                return Promise.resolve([uri]);
+            case "album":
+                return this.getAlbumTrackURIs(id);
+            case "artist":
+                return this.getArtistTopTrackURIs(id);
+            case "playlist":
+                return this.getPlaylistTrackURIs(id);
+            case "show":
+                return this.getUnfinishedShowEpisodes(id, 10).then((episodes) =>
+                    episodes.map((e) => e.uri)
+                );
+            default:
+                assertUnreachable();
+        }
+    }
+
+    private async backgroundFlush(builder: QueueBuilder) {
+        const log = LOG.childFor(this.backgroundFlush, {
+            appId: builder.appId,
+        });
+
+        log.debug("Starting background flush...", { appId: builder.appId });
+
+        this._backgroundFlushes.set(builder.appId, builder);
+
+        for await (const uri of builder) {
+            log.debug("Adding URI to queue...", { uri });
+            this.api.addToQueue(builder.device.id, uri);
+        }
+
+        log.debug("Background flush done.");
+        const other = this._backgroundFlushes.get(builder.appId);
+        if (other === builder) {
+            log.debug("Removing from background flush map");
+            this._backgroundFlushes.delete(builder.appId);
+        }
+    }
+
+    private async flush(appId: any) {
+        const log = LOG.childFor(this.flush, { appId });
+
+        log.debug("Flushing QueueBuilder...");
+
+        const builder = this._queueBuilders.get(appId);
+
+        if (builder === undefined) {
+            log.warn("No QueueBuilder found for appId");
+            return;
+        }
+
+        this._queueBuilders.delete(appId);
+
+        if (builder.isEmpty) {
+            log.error("Attempted to flush empty QueueBuilder.");
+            return;
+        }
+
+        if (builder.srcURIs.length === 1) {
+            log.debug("QueueBuilder has a single URI, playing directly.");
+            await this.api.play(builder.device.id, builder.srcURIs[0]);
+            return;
+        }
+
+        // const uris = await builder.popInitialURIs();
+        const uri = await builder.next();
+        if (uri.done) {
+            log.error("Unable to get next URI from QueueBuilder");
+            return;
+        }
+
+        const backgroundBuilder = this._backgroundFlushes.get(appId);
+        if (backgroundBuilder !== undefined) {
+            log.debug(
+                "A previous QueueBuilder is still flushing, canceling..."
+            );
+            backgroundBuilder.cancel();
+            this._backgroundFlushes.delete(appId);
+        }
+
+        log.debug("Playing initial URI...", { uri: uri.value });
+        await this.api.play(builder.device.id, uri.value);
+
+        log.debug("Kicking off background flush...");
+        this.backgroundFlush(builder);
+    }
+
+    async getQueueBuilder(env: ExecWrapper): Promise<QueueBuilder> {
+        const appId = env.app.uniqueId;
+        let builder = this._queueBuilders.get(appId);
+        if (builder !== undefined) {
+            return builder;
         }
         const device = await this.getActiveDevice(env);
-        const newQueue = new NewQueue(device);
+        builder = new QueueBuilder(appId, device, this.resolveURI.bind(this));
         env.addExitProcedureHook(async () => {
-            await this.flush();
+            await this.flush(appId);
         });
-        this.newQueues.set(env.app.uniqueId, newQueue);
-        return newQueue;
+        this._queueBuilders.set(appId, builder);
+        return builder;
     }
 
     async do_play(
         { playable }: { playable: Value.Entity },
-        env: ExecEnvironment
+        env: ExecWrapper
     ): Promise<{ device: Value.Entity }> {
-        const newQueue = await this.getNewQueue(env);
-        newQueue.append(playable);
-        return { device: newQueue.deviceEntity };
-    }
-}
-
-class NewQueue {
-    public readonly playableEntities: Value.Entity[];
-
-    constructor(public readonly device: DeviceObject) {
-        this.playableEntities = [];
-    }
-
-    get deviceEntity(): Value.Entity {
-        return new Value.Entity(this.device.id, this.device.name);
-    }
-
-    append(playableEntity: Value.Entity): void {
-        this.playableEntities.push(playableEntity);
+        const builder = await this.getQueueBuilder(env);
+        builder.push(playable);
+        return { device: builder.deviceEntity };
     }
 }

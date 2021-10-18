@@ -30,7 +30,7 @@ export default class CacheEpisode extends CacheEntity implements EpisodeObject {
     release_date: string;
     release_date_precision: string;
     restrictions: EpisodeRestrictionObject;
-    resume_point: ResumePointObject;
+    resume_point?: ResumePointObject;
 
     // Construction
     // =======================================================================

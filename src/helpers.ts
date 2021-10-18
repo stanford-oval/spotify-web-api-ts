@@ -7,6 +7,42 @@ import { ThingPlayable } from "./things";
 // Helper Functions
 // ===========================================================================
 
+export type URIType =
+    | "track"
+    | "artist"
+    | "album"
+    | "playlist"
+    | "show"
+    | "episode";
+
+export const URI_TYPES: URIType[] = [
+    "track",
+    "artist",
+    "album",
+    "playlist",
+    "show",
+    "episode",
+];
+
+export function uriType(uri: string): URIType {
+    for (const type of URI_TYPES) {
+        if (uri.startsWith(`spotify:${type}`)) {
+            return type;
+        }
+    }
+    throw new Error(`Not a recognized URI type: ${uri}`);
+}
+
+export function isSingularURI(uri: string): boolean {
+    const type = uriType(uri);
+    return type === "track" || type === "episode";
+}
+
+export function uriId(uri: string): string {
+    const parts = uri.split(":");
+    return parts[parts.length - 1];
+}
+
 export function* iterArtistIdsForAlbums(
     albums: SimplifiedAlbumObject[]
 ): Generator<string, void, void> {

@@ -26,6 +26,8 @@ import {
     SimplifiedShowObject,
     TrackObject,
     SimplifiedEpisodeObject,
+    PlaylistObject,
+    PlaylistTrackObject,
 } from "./objects";
 import {
     FeaturedPlaylistsResponse,
@@ -38,7 +40,12 @@ import { SearchQuery, SearchQueryProps } from "./search_query";
 import { ThingError } from "../things";
 import Logging from "../logging";
 import { Logger } from "../logging/logger";
-import { assertBounds, assertMax, checkPageOptions } from "../helpers";
+import {
+    assertBounds,
+    assertMax,
+    checkPageOptions,
+    isSingularURI,
+} from "../helpers";
 import { BrowseOptions, MarketPageOptions, PageOptions } from "./requests";
 
 // Constants
@@ -188,6 +195,10 @@ export default class Api {
 
         timer.done({ level: "http" });
 
+        if (!response) {
+            return null as any as TResponse;
+        }
+
         try {
             return JSON.parse(response) as TResponse;
         } catch (error: any) {
@@ -236,6 +247,13 @@ export default class Api {
         return this.request<TResponse>({ method: "POST", path, body });
     }
 
+    put<TResponse = any>(
+        path: string,
+        body: Record<string, any>
+    ): Promise<TResponse> {
+        return this.request<TResponse>({ method: "PUT", path, body });
+    }
+
     // API Methods
     // -----------------------------------------------------------------------
 
@@ -247,6 +265,13 @@ export default class Api {
     ): Promise<AlbumObject[]> {
         assert(ids.length <= 20, `Limit 20 ids, given ${ids.length}.`);
         return this.getList<AlbumObject>("/v1/albums", { ids, ...options });
+    }
+
+    getAlbum(
+        id: string,
+        options: { market?: string } = {}
+    ): Promise<AlbumObject> {
+        return this.get<AlbumObject>(`/v1/albums/${id}`, options);
     }
 
     // ### Artists API ###
@@ -402,7 +427,7 @@ export default class Api {
 
     // ### Player API ###
 
-    getUserCurrentlyPlayingTrack(options: {
+    getCurrentlyPlaying(options: {
         market: string;
         additional_types?: string | string[];
     }): Promise<CurrentlyPlayingObject> {
@@ -412,7 +437,7 @@ export default class Api {
         );
     }
 
-    getMyPlayer(
+    getPlayer(
         options: {
             market?: string;
             additional_types?: string | string[];
@@ -424,8 +449,65 @@ export default class Api {
         );
     }
 
-    getMyPlayerDevices(): Promise<DeviceObject[]> {
+    getPlayerDevices(): Promise<DeviceObject[]> {
         return this.getList<DeviceObject>("/v1/me/player/devices");
+    }
+
+    play(
+        device_id: string,
+        uris: string | string[],
+        options: {
+            offset?: number;
+            position_ms?: number;
+        } = {}
+    ): Promise<null> {
+        const args: Record<string, any> = { device_id, ...options };
+        if (Array.isArray(uris)) {
+            args.uris = uris;
+        } else if (isSingularURI(uris)) {
+            args.uris = [uris];
+        } else {
+            args.context_uri = uris;
+        }
+
+        return this.put<null>("/v1/me/player/play", args);
+    }
+
+    addToQueue(deviceId: string, uri: string): Promise<null> {
+        return this.request<null>({
+            method: "POST",
+            path: "/v1/me/player/queue",
+            query: { device_id: deviceId, uri },
+        });
+    }
+
+    // ### Playlist API ###
+
+    getPlaylist(
+        id: string,
+        options: {
+            market?: string;
+            fields?: string;
+            additional_types?: string | string[];
+        } = {}
+    ): Promise<PlaylistObject> {
+        return this.get<PlaylistObject>(`/v1/playlists/${id}`, options);
+    }
+
+    getPlaylistTracks(
+        id: string,
+        options: {
+            market?: string;
+            fields?: string;
+            additional_types?: string | string[];
+            limit?: number;
+            offset?: number;
+        } = {}
+    ): Promise<PagingObject<PlaylistTrackObject>> {
+        return this.get<PagingObject<PlaylistTrackObject>>(
+            `/v1/playlists/${id}/tracks`,
+            options
+        );
     }
 
     // ### Search API ###
