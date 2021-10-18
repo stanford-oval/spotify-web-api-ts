@@ -3,7 +3,7 @@
 // Dependencies
 // ---------------------------------------------------------------------------
 
-import { HTTPRequestOptions } from "thingpedia/dist/helpers/http";
+import { Value, BaseDevice, Helpers, BaseEngine } from "thingpedia";
 import { RedisClientType } from "redis/dist/lib/client";
 import {
     CompiledFilterHint,
@@ -45,7 +45,6 @@ import {
 } from "../helpers";
 import Logging from "../logging";
 import { Logger } from "../logging/logger";
-import { Value } from "thingpedia";
 import QueueBuilder from "../queue_builder";
 import Albums from "./albums";
 import Artists from "./artists";
@@ -69,9 +68,78 @@ const LOG = Logging.get(__filename);
 // ===========================================================================
 
 type Params = Record<string, any>;
-interface State {
-    id: string;
-    product?: string;
+
+interface AudioDevice {
+    /**
+     * Stop all playback.
+     */
+    stop(conversationId: string): void;
+
+    /**
+     * Pause all playback.
+     */
+    pause?(conversationId: string): void;
+
+    /**
+     * Resume playback.
+     */
+    resume?(conversationId: string): void;
+}
+
+type CustomPlayerSpec =
+    | {
+          type: "spotify";
+          username?: string;
+          accessToken?: string;
+      }
+    | {
+          type: "url";
+      }
+    | {
+          type: "custom";
+          /**
+           * Map a pair of OS (as returned by process.platform) and
+           * CPU architecture (as returned by process.arch), separated by -,
+           * to a URL to download the binary to play.
+           *
+           * Example:
+           * ```
+           * {
+           *  "linux-x64": "http://example.com/downloads/linux-x86-64/my-player",
+           *  "win-x64": "http://example.com/downloads/linux-x86-64/my-player.exe"
+           * }
+           */
+          binary: Record<string, string>;
+          /**
+           * Arguments to call the player binary with.
+           *
+           * The arguments will be appended to the binary name.
+           *
+           * If present, the special argument `...` will be replaced with the list of URLs
+           * to play. In that case, all URLs will be passed to the binary at once.
+           *
+           * Otherwise, if the special argument `{}` is present, it will be replaced with
+           * one URL to play. In that case, if multiple URLs are present, it is expected
+           * that the binary will terminate successfully after playing each one.
+           */
+          args: string[];
+      };
+
+interface AudioController {
+    requestAudio(
+        device: BaseDevice,
+        iface: AudioDevice | (() => Promise<void>),
+        conversationId?: string,
+        spec?: CustomPlayerSpec
+    ): Promise<void>;
+}
+
+interface Engine extends BaseEngine {
+    audio?: AudioController;
+}
+
+interface Device extends BaseDevice {
+    engine: Engine;
 }
 
 // Class Definition
@@ -80,7 +148,7 @@ export default class Client {
     private static readonly log = LOG.childFor(Client);
 
     public readonly api: Api;
-    public readonly state: State;
+    public readonly device: Device;
     private _pendingBuilders: Map<string, QueueBuilder>;
     private _backgroundBuilders: Map<string, QueueBuilder>;
 
@@ -98,16 +166,16 @@ export default class Client {
     public readonly tracks: Tracks;
 
     constructor({
-        state,
-        useOAuth2,
+        device,
         redis,
     }: {
-        state: State;
-        useOAuth2: HTTPRequestOptions["useOAuth2"];
+        device: BaseDevice;
         redis?: RedisClientType;
     }) {
-        this.state = state;
-        this.api = new Api({ useOAuth2 });
+        this.device = device;
+        this.api = new Api({
+            useOAuth2: device as Helpers.Http.HTTPRequestOptions["useOAuth2"],
+        });
         this._pendingBuilders = new Map<string, QueueBuilder>();
         this._backgroundBuilders = new Map<string, QueueBuilder>();
 
@@ -133,6 +201,16 @@ export default class Client {
 
     private get log(): Logger {
         return Client.log;
+    }
+
+    get userId(): string {
+        if (typeof this.device.state.id === "string") {
+            return this.device.state.id;
+        }
+        throw new TypeError(
+            `Expected device.state.id to be a string, found ` +
+                `${typeof this.device.state.id}: ${this.device.state.id}`
+        );
     }
 
     get isTestMode(): boolean {
@@ -331,14 +409,60 @@ export default class Client {
             this._backgroundBuilders.delete(appId);
         }
 
-        log.debug("Playing initial URI...", { uri: uri.value });
-        await this.api.player.play({
-            device_id: builder.device.id,
-            uris: uri.value,
-        });
+        log.debug("Requesting playing initial URI...", { uri: uri.value });
+        await this.requestPlay(builder.device.id, () =>
+            this.api.player.play({
+                device_id: builder.device.id,
+                uris: uri.value,
+            })
+        );
 
         log.debug("Kicking off background flush...");
         this.backgroundFlushQueueBuilder(builder);
+    }
+
+    protected async requestPlay(deviceId: string, play: () => Promise<any>) {
+        const log = this.log.childFor(this.requestPlay, { deviceId });
+        if (this.isTestMode) {
+            log.debug("In test mode, aborting.");
+            return;
+        }
+
+        if (this.device.engine.audio) {
+            await this.device.engine.audio.requestAudio(this.device, {
+                resume: async () => {
+                    log.debug("resuming audio");
+                    try {
+                        await this.api.player.play({ device_id: deviceId });
+                    } catch (error: any) {
+                        log.error("Failed to resume audio --", error);
+                    }
+                },
+
+                stop: async () => {
+                    log.debug("stopping audio");
+                    try {
+                        await this.api.player.pause({ device_id: deviceId });
+                    } catch (error: any) {
+                        console.error("Failed to stop audio --", error);
+                    }
+                },
+            });
+        }
+
+        try {
+            await play();
+        } catch (error) {
+            const player_info = await this.get_get_play_info();
+            if (player_info) {
+                //regular spotify players will throw an error when songs are
+                //already playing
+                throw new ThingError("Disallowed Action", "disallowed_action");
+            } else {
+                //web players will throw an error when songs are not playing
+                throw new ThingError("Player Error", "player_error");
+            }
+        }
     }
 
     // "Get Any" Instance Methods
@@ -706,7 +830,7 @@ export default class Client {
             return;
         }
         try {
-            await this.api.playlists.create(this.state.id, name);
+            await this.api.playlists.create(this.userId, name);
         } catch (error) {
             throw new ThingError(
                 `Failed to create playlist`,
@@ -715,22 +839,27 @@ export default class Client {
         }
     }
 
-    async do_player_pause(params: Params, env: ExecWrapper) {
+    do_player_pause(params: Params, env: ExecWrapper) {
         const log = this.log.childFor(this.do_player_pause);
         return this._doPlayerAction(log, this.api.player.pause, env);
     }
 
     async do_player_play(params: Params, env: ExecWrapper) {
-        const log = this.log.childFor(this.do_player_play);
-        return this._doPlayerAction(log, this.api.player.play, env);
+        // const log = this.log.childFor(this.do_player_play);
+        this._checkPremium();
+        const device = await this.getActiveDevice(env);
+
+        await this.requestPlay(device.id, () =>
+            this.api.player.play({ device_id: device.id })
+        );
     }
 
-    async do_player_next(params: Params, env: ExecWrapper) {
+    do_player_next(params: Params, env: ExecWrapper) {
         const log = this.log.childFor(this.do_player_next);
         return this._doPlayerAction(log, this.api.player.next, env);
     }
 
-    async do_player_previous(params: Params, env: ExecWrapper) {
+    do_player_previous(params: Params, env: ExecWrapper) {
         const log = this.log.childFor(this.do_player_next);
         return this._doPlayerAction(log, this.api.player.previous, env);
     }
@@ -804,8 +933,8 @@ export default class Client {
 
     protected _checkPremium() {
         if (
-            this.state.product !== "premium" &&
-            this.state.product !== undefined
+            this.device.state.product !== "premium" &&
+            this.device.state.product !== undefined
         ) {
             throw new ThingError(
                 "Premium account required",
