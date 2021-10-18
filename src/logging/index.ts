@@ -4,9 +4,12 @@ import * as Winston from "Winston";
 
 import prettySimple from "./format/pretty_simple";
 import Factory from "./factory";
+import { Logger } from "./logger";
 
 const RUN_ROOT = Path.resolve(__dirname, "..");
 const REPO_ROOT = Path.resolve(RUN_ROOT, "..");
+
+export { Logger };
 
 export default new Factory({
     runRoot: RUN_ROOT,

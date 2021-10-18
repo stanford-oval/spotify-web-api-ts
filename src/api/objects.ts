@@ -203,6 +203,16 @@ export interface EntityObject {
     uri: string;
 }
 
+export function isEntityObject(x: any): x is EntityObject {
+    return (
+        typeof x === "object" &&
+        x !== null &&
+        ["type", "id", "name", "uri"].every(
+            (prop) => x.hasOwnProperty(prop) && typeof x[prop] === "string"
+        )
+    );
+}
+
 // Dependent Types
 // ===========================================================================
 //
@@ -274,7 +284,11 @@ export interface SimplifiedAlbumObject extends EntityObject {
     release_date: string;
     release_date_precision: string;
     restrictions?: AlbumRestrictionObject;
-    total_tracks: string; // int
+    total_tracks: number; // int
+}
+
+export function isSimplifiedAlbumObject(x: any): x is SimplifiedAlbumObject {
+    return isEntityObject(x) && x.type === "album";
 }
 
 /**
@@ -288,6 +302,14 @@ export interface AlbumObject extends SimplifiedAlbumObject {
     label: string;
     popularity: number; // int[0, 100]
     tracks: PagingObject<SimplifiedTrackObject>;
+}
+
+export function isAlbumObject(x: any): x is AlbumObject {
+    return (
+        isSimplifiedAlbumObject(x) &&
+        x.hasOwnProperty("tracks") &&
+        x.hasOwnProperty("popularity")
+    );
 }
 
 export /**
