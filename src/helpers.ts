@@ -1,4 +1,5 @@
 import { strict as assert } from "assert";
+import { Value } from "thingpedia";
 
 import { SimplifiedAlbumObject, SimplifiedEpisodeObject } from "./api/objects";
 import { PageOptions } from "./api/requests";
@@ -134,6 +135,31 @@ export function checkPageOptions(
     if (options.offset !== undefined) {
         assertMin("options.offset", options.offset, 0);
     }
+}
+
+export type IsFn<T> = (x: any) => x is T;
+
+export function cast<T>(is: IsFn<T>, x: any, message?: string): T {
+    if (is(x)) {
+        return x;
+    }
+    if (message === undefined) {
+        message = `Expected ${is.name} to return true`;
+    }
+    throw new TypeError(`message; given ${typeof x}: ${x}`);
+}
+
+export function isString(x: any): x is string {
+    return typeof x === "string";
+}
+
+export function checkEntity(name: string, x: any): Value.Entity {
+    if (typeof x === "object" && x instanceof Value.Entity) {
+        return x;
+    }
+    throw new TypeError(
+        `Expected ${name} to be an Entity, given ${typeof x}: ${x}`
+    );
 }
 
 // Functions Copied/Adapted From Skill

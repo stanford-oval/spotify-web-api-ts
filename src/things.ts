@@ -64,3 +64,7 @@ export type ThingPlayable =
     | ThingAlbum
     | ThingPlaylist
     | ThingShow;
+
+export function isEntity(x: any): x is Value.Entity {
+    return typeof x === "object" && x instanceof Value.Entity;
+}

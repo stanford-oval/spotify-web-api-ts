@@ -12,3 +12,13 @@ export interface BrowseOptions extends PageOptions {
     locale?: string;
     timestamp?: string | Date;
 }
+
+export interface DeviceOptions {
+    device_id?: string;
+}
+
+export type RepeatState = "track" | "context" | "off";
+
+export function isRepeatState(x: any): x is RepeatState {
+    return x === "track" || x === "context" || x === "off";
+}

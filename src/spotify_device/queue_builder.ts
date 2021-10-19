@@ -1,10 +1,10 @@
 import { Value } from "thingpedia";
-import { DeviceObject } from "./api/objects";
-import { assertUnreachable, isSingularURI, uriType } from "./helpers";
-import Logging from "./logging";
-import { Logger } from "./logging/logger";
+import { DeviceObject } from "../api/objects";
+import { assertUnreachable, isSingularURI, uriType } from "../helpers";
+import Logging from "../logging";
+import { Logger } from "../logging/logger";
 
-type URIResolver = (uri: string) => Promise<string[]>;
+export type URIResolver = (uri: string) => Promise<string[]>;
 
 type NextValue = {
     done: false;
@@ -149,92 +149,3 @@ export default class QueueBuilder {
         return this;
     }
 }
-
-// export default class QueueBuilder {
-//     private _items: QueueBuilderItem[];
-//     private _state: QueryBuilderState = QueryBuilderState.Building;
-
-//     constructor() {
-//         this._items = [];
-//     }
-
-//     get state(): QueryBuilderState {
-//         return this._state;
-//     }
-
-//     get size(): number {
-//         return this._items.length;
-//     }
-
-//     get isEmpty(): boolean {
-//         return this.size === 0;
-//     }
-
-//     private finish() {
-//         this._state = QueryBuilderState.Done;
-//         this._items = [];
-//     }
-
-//     private async enqueueOnly(): Promise<void> {
-//         const item = this._items[0];
-//         this.finish();
-//         switch (item.type) {
-//             case "track":
-//             case "episode":
-//                 await this.set({ uris: [item.entity.value] });
-//                 break;
-//             default:
-//                 await this.set({ context_uri: item.entity.value });
-//                 break;
-//         }
-//     }
-
-//     private async addRest(): Promise<void> {
-//         const item = this._items.shift();
-//         if (item === undefined) {
-//             this.finish();
-//             return;
-//         }
-//         const uris = await item.resolveURIs();
-//         for (const uri of uris) {
-//             await this._addURI(uri);
-//         }
-//         this.addRest();
-//     }
-
-//     async enqueue(): Promise<void> {
-//         if (this._state !== QueryBuilderState.Building) {
-//             throw new Error(`Can only enqueue when Building`);
-//         }
-//         this._state = QueryBuilderState.Enqueuing;
-
-//         if (this._items.length === 1) {
-//             await this.enqueueOnly();
-//             return;
-//         }
-
-//         const queueNowURIs: string[] = [];
-//         while (!this.isEmpty && this._items[0].isReady) {
-//             const item = this._items.shift();
-//             if (item === undefined) {
-//                 assertUnreachable();
-//             }
-//             queueNowURIs.push(item.entity.value);
-//         }
-
-//         if (queueNowURIs.length > 0) {
-//             // Have item(s) at the start of the list that are ready (tracks and
-//             // episodes that don't need to go get their URIs), so we start with
-//             // those
-
-//             if (this.isEmpty) {
-//                 this.finish();
-//             }
-
-//             await this.set({ uris: queueNowURIs });
-//             return;
-//         }
-
-//         const urisPromise = this._items[0].resolveURIs();
-//     }
-// }

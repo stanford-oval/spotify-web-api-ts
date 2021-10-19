@@ -9,7 +9,11 @@ import { Logger } from "./logger";
 const RUN_ROOT = Path.resolve(__dirname, "..");
 const REPO_ROOT = Path.resolve(RUN_ROOT, "..");
 
-export { Logger };
+interface HasLogger {
+    log: Logger;
+}
+
+export { Logger, HasLogger };
 
 export default new Factory({
     runRoot: RUN_ROOT,

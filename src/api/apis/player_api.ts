@@ -4,6 +4,7 @@ import {
     CurrentlyPlayingObject,
     DeviceObject,
 } from "../objects";
+import { DeviceOptions } from "../requests";
 import BaseApi from "./base_api";
 
 export default class PlayerApi extends BaseApi {
@@ -79,27 +80,27 @@ export default class PlayerApi extends BaseApi {
         });
     }
 
-    pause({ device_id }: { device_id?: string } = {}): Promise<null> {
+    pause(options: DeviceOptions = {}): Promise<null> {
         return this._http.request<null>({
             method: "PUT",
             path: "/v1/me/player/pause",
-            query: { device_id },
+            query: options,
         });
     }
 
-    next({ device_id }: { device_id?: string } = {}): Promise<null> {
+    next(options: DeviceOptions = {}): Promise<null> {
         return this._http.request<null>({
             method: "POST",
             path: "/v1/me/player/next",
-            query: { device_id },
+            query: options,
         });
     }
 
-    previous({ device_id }: { device_id?: string } = {}): Promise<null> {
+    previous(options: DeviceOptions = {}): Promise<null> {
         return this._http.request<null>({
             method: "POST",
             path: "/v1/me/player/previous",
-            query: { device_id },
+            query: options,
         });
     }
 

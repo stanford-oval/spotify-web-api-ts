@@ -1,4 +1,5 @@
 import { CurrentlyPlayingContextObject, DeviceObject } from "../api/objects";
+import { DeviceOptions } from "../api/requests";
 import CacheEpisode from "../cache/cache_episode";
 import CacheTrack from "../cache/cache_track";
 import { assertUnreachable } from "../helpers";
@@ -28,4 +29,20 @@ export default class Player extends ApiComponent {
     getDevices(): Promise<DeviceObject[]> {
         return this.api.player.getDevices();
     }
+
+    async getActiveDevice() {
+        const devices = await this.getDevices();
+
+        if (devices.length === 0) {
+            // In the prior implementation, this would attempt to spawn a
+            // Spotify app if possible, sleeping for 20 seconds to wait for it
+            // to come up.
+            //
+            //
+        }
+    }
+
+    // pause(options: DeviceOptions = {}): Promise<void> {
+
+    // };
 }
