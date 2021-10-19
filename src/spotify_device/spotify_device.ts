@@ -5,8 +5,8 @@ import {
     ExecEnvironment,
 } from "thingtalk/dist/runtime/exec_environment";
 
-import SpotifyDaemon from "./spotify_daemon";
-import Client from "./client";
+import SpotifyDaemon from "../spotify_daemon";
+import Client from "../client";
 import {
     ExecWrapper,
     isEntity,
@@ -18,9 +18,9 @@ import {
     ThingPlaylist,
     ThingShow,
     ThingTrack,
-} from "./things";
-import { SearchQuery } from "./api/search_query";
-import Logging from "./logging";
+} from "../things";
+import { SearchQuery } from "../api/search_query";
+import Logging from "../logging";
 import {
     cast,
     isJSONParseEmptyInputError,
@@ -28,14 +28,14 @@ import {
     isTestMode,
     uriId,
     uriType,
-} from "./helpers";
-import CacheTrack from "./cache/cache_track";
-import CacheEpisode from "./cache/cache_episode";
-import { CurrentlyPlayingContextObject, DeviceObject } from "./api/objects";
-import { buildQuery, invokeSearch } from "./spotify_device/helpers";
-import QueueBuilderManager from "./spotify_device/queue_builder_manager";
-import { isOnOff } from "./spotify_device/types";
-import { isRepeatState } from "./api/requests";
+} from "../helpers";
+import CacheTrack from "../cache/cache_track";
+import CacheEpisode from "../cache/cache_episode";
+import { CurrentlyPlayingContextObject, DeviceObject } from "../api/objects";
+import { buildQuery, invokeSearch } from "./helpers";
+import QueueBuilderManager from "./queue_builder_manager";
+import { isOnOff } from "./types";
+import { isRepeatState } from "../api/requests";
 
 // Constants
 // ===========================================================================
