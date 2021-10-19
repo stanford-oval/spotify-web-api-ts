@@ -5,7 +5,12 @@ import {
     PlaylistTrackObject,
     SimplifiedPlaylistObject,
 } from "../objects";
-import { PageOptions } from "../requests";
+import {
+    PageOptions,
+    PlaylistAddOptions,
+    PlaylistCreateOptions,
+} from "../requests";
+import { PlaylistSnapshotResponse } from "../responses";
 import BaseApi from "./base_api";
 
 export default class PlaylistsApi extends BaseApi {
@@ -39,11 +44,7 @@ export default class PlaylistsApi extends BaseApi {
     create(
         user_id: string,
         name: string,
-        options: {
-            public?: boolean;
-            collaborative?: boolean;
-            description?: string;
-        } = {}
+        options: PlaylistCreateOptions = {}
     ): Promise<PlaylistObject> {
         return this._http.post(`/v1/users/${user_id}/playlists`, {
             name,
@@ -68,15 +69,10 @@ export default class PlaylistsApi extends BaseApi {
 
     add(
         id: string,
-        uris: string | string[],
-        options: {
-            position?: number;
-        } = {}
-    ) {
-        if (!Array.isArray(uris)) {
-            uris = [uris];
-        }
-        return this._http.post<{ snapshot_id: string }>(
+        uris: string[],
+        options: PlaylistAddOptions = {}
+    ): Promise<PlaylistSnapshotResponse> {
+        return this._http.post<PlaylistSnapshotResponse>(
             `/v1/playlists/${id}/tracks`,
             { uris, ...options }
         );

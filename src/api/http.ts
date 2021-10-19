@@ -123,6 +123,11 @@ export default class Http {
                 log.error("Failed to JSON encode request body --", error);
                 throw error;
             }
+            // Don't send empty JSON objects (happens when _all_ properties of
+            // `body` are `undefined`)
+            if (encodedBody === "{}") {
+                encodedBody = null;
+            }
         }
 
         let response: string;
@@ -143,8 +148,8 @@ export default class Http {
 
         timer.done({ level: "http" });
 
-        if (!response) {
-            return null as any as TResponse;
+        if (response === "") {
+            return undefined as any as TResponse;
         }
 
         try {

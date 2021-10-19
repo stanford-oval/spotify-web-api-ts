@@ -5,7 +5,10 @@ import {
     PlaylistTrackObject,
     SimplifiedPlaylistObject,
 } from "../api/objects";
+import { PlaylistAddOptions, PlaylistCreateOptions } from "../api/requests";
+import { PlaylistSnapshotResponse } from "../api/responses";
 import CachePlaylist from "../cache/cache_playlist";
+import { arrayFor } from "../helpers";
 import ApiComponent from "./api_component";
 
 interface Index {
@@ -29,6 +32,24 @@ export default class Playlists extends ApiComponent {
         return this.getTracks(id).then((page) =>
             page.items.map((t) => t.track.uri)
         );
+    }
+
+    create(
+        user_id: string,
+        name: string,
+        options: PlaylistCreateOptions = {}
+    ): Promise<CachePlaylist> {
+        return this.api.playlists
+            .create(user_id, name, options)
+            .then((playlist) => this.augment.playlist(playlist));
+    }
+
+    add(
+        id: string,
+        uris: string | string[],
+        options: PlaylistAddOptions = {}
+    ): Promise<PlaylistSnapshotResponse> {
+        return this.api.playlists.add(id, arrayFor(uris), options);
     }
 
     async getMy(): Promise<CachePlaylist[]> {

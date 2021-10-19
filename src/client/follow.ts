@@ -1,4 +1,5 @@
 import CacheArtist from "../cache/cache_artist";
+import { arrayFor } from "../helpers";
 import ApiComponent from "./api_component";
 
 export default class Follow extends ApiComponent {
@@ -11,5 +12,9 @@ export default class Follow extends ApiComponent {
         return this.api.follow
             .getMyArtists()
             .then((page) => this.augment.artists(page.items));
+    }
+
+    putArtists(ids: string | string[]): Promise<void> {
+        return this.api.follow.putArtists(arrayFor(ids));
     }
 }

@@ -1,7 +1,7 @@
 import { strict as assert } from "assert";
 import { Value } from "thingpedia";
 
-import { SimplifiedAlbumObject, SimplifiedEpisodeObject } from "./api/objects";
+import { SimplifiedEpisodeObject } from "./api/objects";
 import { PageOptions } from "./api/requests";
 import { ThingPlayable } from "./things";
 
@@ -44,18 +44,11 @@ export function uriId(uri: string): string {
     return parts[parts.length - 1];
 }
 
-export function* iterArtistIdsForAlbums(
-    albums: SimplifiedAlbumObject[]
-): Generator<string, void, void> {
-    for (let album of albums) {
-        for (let artist of album.artists) {
-            yield artist.id;
-        }
+export function arrayFor<TItem>(arrayOrItem: TItem | TItem[]): TItem[] {
+    if (Array.isArray(arrayOrItem)) {
+        return arrayOrItem;
     }
-}
-
-export function artistIdsForAlbums(albums: SimplifiedAlbumObject[]): string[] {
-    return Array.from(new Set(iterArtistIdsForAlbums(albums)));
+    return [arrayOrItem];
 }
 
 /**

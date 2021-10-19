@@ -16,16 +16,12 @@ export default class FollowApi extends BaseApi {
             .then(({ artists }) => artists);
     }
 
-    putArtists(ids: string[]): Promise<null> {
-        return this._http.request<null>({
+    putArtists(ids: string[]): Promise<void> {
+        return this._http.request<void>({
             method: "PUT",
             path: "/v1/me/following",
             query: { type: "artist" },
             body: { ids },
         });
-    }
-
-    putArtist(id: string): Promise<null> {
-        return this.putArtists([id]);
     }
 }

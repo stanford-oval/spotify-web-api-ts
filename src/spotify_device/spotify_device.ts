@@ -205,8 +205,8 @@ export default class SpotifyDevice extends BaseDevice {
             resolveURI: this._client.resolveURI.bind(this._client),
             getActiveDevice: this._getActiveDevice.bind(this),
             play: this._negotiatePlay.bind(this),
-            addToQueue: this._client.api.player.addToQueue.bind(
-                this._client.api.player
+            addToQueue: this._client.player.addToQueue.bind(
+                this._client.player
             ),
         });
     }
@@ -326,7 +326,7 @@ export default class SpotifyDevice extends BaseDevice {
                 resume: async () => {
                     log.debug("resuming audio");
                     try {
-                        await this._client.api.player.play({ device_id });
+                        await this._client.player.play({ device_id });
                     } catch (error: any) {
                         log.error("Failed to resume audio --", error);
                     }
@@ -335,7 +335,7 @@ export default class SpotifyDevice extends BaseDevice {
                 stop: async () => {
                     log.debug("stopping audio");
                     try {
-                        await this._client.api.player.pause({ device_id });
+                        await this._client.player.pause({ device_id });
                     } catch (error: any) {
                         console.error("Failed to stop audio --", error);
                     }
@@ -344,7 +344,7 @@ export default class SpotifyDevice extends BaseDevice {
         }
 
         try {
-            await this._client.api.player.play({
+            await this._client.player.play({
                 device_id,
                 uris,
             });
@@ -640,20 +640,20 @@ export default class SpotifyDevice extends BaseDevice {
         );
         const id = uriId(playable.value);
         const type = uriType(playable.value);
-        let method: (id: string) => Promise<null>;
+        let method: (id: string) => Promise<void>;
 
         switch (type) {
             case "album":
-                method = this._client.api.library.putAlbum;
+                method = this._client.library.putAlbums;
                 break;
             case "track":
-                method = this._client.api.library.putTrack;
+                method = this._client.library.putTracks;
                 break;
             case "show":
-                method = this._client.api.library.putShow;
+                method = this._client.library.putShows;
                 break;
             case "episode":
-                method = this._client.api.library.putEpisode;
+                method = this._client.library.putEpisodes;
                 break;
             default:
                 throw new ThingError(
@@ -662,7 +662,7 @@ export default class SpotifyDevice extends BaseDevice {
                 );
         }
 
-        await method.bind(this._client.api.library)(id);
+        await method.bind(this._client.library)(id);
     }
 
     @genieDo
@@ -675,12 +675,11 @@ export default class SpotifyDevice extends BaseDevice {
         const id = uriId(artist.value);
         const type = uriType(artist.value);
         if (type !== "artist") {
-            throw new ThingError(
-                `Not an artist: ${artist}`,
-                "disallowed_action"
+            throw new TypeError(
+                `Expected artist Entity, given ${artist.value}`
             );
         }
-        await this._client.api.follow.putArtist(id);
+        await this._client.follow.putArtists(id);
     }
 
     @genieDo
@@ -690,7 +689,7 @@ export default class SpotifyDevice extends BaseDevice {
             params.name,
             "Expected params.name to be a string"
         );
-        await this._client.api.playlists.create(this.state.id, name);
+        await this._client.playlists.create(this.state.id, name);
     }
 
     @genieDo
@@ -706,7 +705,7 @@ export default class SpotifyDevice extends BaseDevice {
     async do_player_pause(params: Params, env: ExecWrapper) {
         this._checkPremium();
         const device = await this._getActiveDevice(env);
-        return this._client.api.player.pause({
+        return this._client.player.pause({
             device_id: device.id,
         });
     }
@@ -715,7 +714,7 @@ export default class SpotifyDevice extends BaseDevice {
     async do_player_next(params: Params, env: ExecWrapper) {
         this._checkPremium();
         const device = await this._getActiveDevice(env);
-        return this._client.api.player.next({
+        return this._client.player.next({
             device_id: device.id,
         });
     }
@@ -724,7 +723,7 @@ export default class SpotifyDevice extends BaseDevice {
     async do_player_previous(params: Params, env: ExecWrapper) {
         this._checkPremium();
         const device = await this._getActiveDevice(env);
-        return this._client.api.player.previous({
+        return this._client.player.previous({
             device_id: device.id,
         });
     }
@@ -738,7 +737,7 @@ export default class SpotifyDevice extends BaseDevice {
         );
         this._checkPremium();
         const device = await this._getActiveDevice(env);
-        await this._client.api.player.shuffle(shuffle === "on", {
+        await this._client.player.shuffle(shuffle === "on", {
             device_id: device.id,
         });
     }
@@ -752,7 +751,7 @@ export default class SpotifyDevice extends BaseDevice {
         );
         this._checkPremium();
         const device = await this._getActiveDevice(env);
-        await this._client.api.player.repeat(repeat, {
+        await this._client.player.repeat(repeat, {
             device_id: device.id,
         });
     }
@@ -779,6 +778,6 @@ export default class SpotifyDevice extends BaseDevice {
             );
         }
 
-        await this._client.api.playlists.add(playlistId, song.value);
+        await this._client.playlists.add(playlistId, song.value);
     }
 }

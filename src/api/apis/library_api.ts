@@ -29,39 +29,23 @@ export default class LibraryApi extends BaseApi {
         );
     }
 
-    putAlbums(ids: string[]): Promise<null> {
-        return this._http.put<null>("/v1/me/albums", { ids });
+    putAlbums(ids: string[]): Promise<void> {
+        return this._http.put<void>("/v1/me/albums", { ids });
     }
 
-    putAlbum(id: string): Promise<null> {
-        return this.putAlbums([id]);
+    putTracks(ids: string[]): Promise<void> {
+        return this._http.put<void>("/v1/me/tracks", { ids });
     }
 
-    putTracks(ids: string[]): Promise<null> {
-        return this._http.put<null>("/v1/me/tracks", { ids });
-    }
-
-    putTrack(id: string): Promise<null> {
-        return this.putTracks([id]);
-    }
-
-    putShows(ids: string[]): Promise<null> {
-        return this._http.request<null>({
+    putShows(ids: string[]): Promise<void> {
+        return this._http.request<void>({
             method: "PUT",
             path: "/v1/me/shows",
             query: { ids },
         });
     }
 
-    putShow(id: string): Promise<null> {
-        return this.putShows([id]);
-    }
-
-    putEpisodes(ids: string[]): Promise<null> {
-        return this._http.put<null>("/v1/me/episodes", { ids });
-    }
-
-    putEpisode(id: string): Promise<null> {
-        return this.putEpisodes([id]);
+    putEpisodes(ids: string[]): Promise<void> {
+        return this._http.put<void>("/v1/me/episodes", { ids });
     }
 }

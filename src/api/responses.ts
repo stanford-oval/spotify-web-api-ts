@@ -38,3 +38,7 @@ export interface UserSavedTrack {
     added_at: string;
     track: TrackObject;
 }
+
+export interface PlaylistSnapshotResponse {
+    snapshot_id: string;
+}

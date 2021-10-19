@@ -40,7 +40,7 @@ import Shows from "./shows";
 export default class Client {
     // private static readonly log = LOG.childFor(Client);
 
-    public readonly api: Api;
+    protected readonly api: Api;
 
     public readonly augment: Augment;
     public readonly albums: Albums;

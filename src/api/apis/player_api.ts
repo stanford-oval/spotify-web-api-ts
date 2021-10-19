@@ -1,10 +1,9 @@
-import { isSingularURI } from "../../helpers";
 import {
     CurrentlyPlayingContextObject,
     CurrentlyPlayingObject,
     DeviceObject,
 } from "../objects";
-import { DeviceOptions } from "../requests";
+import { DeviceOptions, RepeatState } from "../requests";
 import BaseApi from "./base_api";
 
 export default class PlayerApi extends BaseApi {
@@ -36,35 +35,15 @@ export default class PlayerApi extends BaseApi {
 
     play({
         device_id,
-        uris,
-        offset,
-        position_ms,
+        ...body
     }: {
         device_id?: string;
         uris?: string | string[];
+        context_uri?: string;
         offset?: number;
         position_ms?: number;
-    } = {}): Promise<null> {
-        let body: undefined | Record<string, any> = undefined;
-
-        if (uris !== undefined) {
-            body = {};
-            if (Array.isArray(uris)) {
-                body.uris = uris;
-            } else if (isSingularURI(uris)) {
-                body.uris = [uris];
-            } else {
-                body.context_uri = uris;
-                if (offset !== undefined) {
-                    body.offset = offset;
-                }
-                if (position_ms !== undefined) {
-                    body.position_ms = position_ms;
-                }
-            }
-        }
-
-        return this._http.request<null>({
+    } = {}): Promise<void> {
+        return this._http.request<void>({
             method: "PUT",
             path: "/v1/me/player/play",
             query: { device_id },
@@ -72,54 +51,48 @@ export default class PlayerApi extends BaseApi {
         });
     }
 
-    addToQueue(deviceId: string, uri: string): Promise<null> {
-        return this._http.request<null>({
+    addToQueue(deviceId: string, uri: string): Promise<void> {
+        return this._http.request<void>({
             method: "POST",
             path: "/v1/me/player/queue",
             query: { device_id: deviceId, uri },
         });
     }
 
-    pause(options: DeviceOptions = {}): Promise<null> {
-        return this._http.request<null>({
+    pause(options: DeviceOptions = {}): Promise<void> {
+        return this._http.request<void>({
             method: "PUT",
             path: "/v1/me/player/pause",
             query: options,
         });
     }
 
-    next(options: DeviceOptions = {}): Promise<null> {
-        return this._http.request<null>({
+    next(options: DeviceOptions = {}): Promise<void> {
+        return this._http.request<void>({
             method: "POST",
             path: "/v1/me/player/next",
             query: options,
         });
     }
 
-    previous(options: DeviceOptions = {}): Promise<null> {
-        return this._http.request<null>({
+    previous(options: DeviceOptions = {}): Promise<void> {
+        return this._http.request<void>({
             method: "POST",
             path: "/v1/me/player/previous",
             query: options,
         });
     }
 
-    shuffle(
-        state: boolean,
-        options: { device_id?: string } = {}
-    ): Promise<null> {
-        return this._http.request<null>({
+    shuffle(state: boolean, options: DeviceOptions = {}): Promise<void> {
+        return this._http.request<void>({
             method: "PUT",
             path: "/v1/me/player/shuffle",
             query: { state, ...options },
         });
     }
 
-    repeat(
-        state: "track" | "context" | "off",
-        options: { device_id?: string } = {}
-    ): Promise<null> {
-        return this._http.request<null>({
+    repeat(state: RepeatState, options: DeviceOptions = {}): Promise<void> {
+        return this._http.request<void>({
             method: "PUT",
             path: "/v1/me/player/repeat",
             query: { state, ...options },

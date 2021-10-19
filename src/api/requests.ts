@@ -22,3 +22,13 @@ export type RepeatState = "track" | "context" | "off";
 export function isRepeatState(x: any): x is RepeatState {
     return x === "track" || x === "context" || x === "off";
 }
+
+export interface PlaylistCreateOptions {
+    public?: boolean;
+    collaborative?: boolean;
+    description?: string;
+}
+
+export interface PlaylistAddOptions {
+    position?: number;
+}
