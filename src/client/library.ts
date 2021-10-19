@@ -6,7 +6,7 @@ import ApiComponent from "./api_component";
 
 export default class Library extends ApiComponent {
     getShows(): Promise<CacheShow[]> {
-        return this.api.library
+        return this._api.library
             .getShows({ limit: 50 })
             .then((r) =>
                 this.augment.shows(r.items.map((entry) => entry.show))
@@ -14,7 +14,7 @@ export default class Library extends ApiComponent {
     }
 
     getTracks(): Promise<CacheTrack[]> {
-        return this.api.library
+        return this._api.library
             .getTracks({ limit: 50 })
             .then((page) =>
                 this.augment.tracks(page.items.map((x) => x.track))
@@ -22,7 +22,7 @@ export default class Library extends ApiComponent {
     }
 
     getAlbums(): Promise<CacheAlbum[]> {
-        return this.api.library
+        return this._api.library
             .getAlbums({ limit: 50 })
             .then((page) =>
                 this.augment.albums(page.items.map((x) => x.album))
@@ -30,18 +30,18 @@ export default class Library extends ApiComponent {
     }
 
     putAlbums(ids: string | string[]): Promise<void> {
-        return this.api.library.putAlbums(arrayFor(ids));
+        return this._api.library.putAlbums(arrayFor(ids));
     }
 
     putTracks(ids: string | string[]): Promise<void> {
-        return this.api.library.putTracks(arrayFor(ids));
+        return this._api.library.putTracks(arrayFor(ids));
     }
 
     putShows(ids: string | string[]): Promise<void> {
-        return this.api.library.putShows(arrayFor(ids));
+        return this._api.library.putShows(arrayFor(ids));
     }
 
     putEpisodes(ids: string | string[]): Promise<void> {
-        return this.api.library.putEpisodes(arrayFor(ids));
+        return this._api.library.putEpisodes(arrayFor(ids));
     }
 }

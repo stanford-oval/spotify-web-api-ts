@@ -40,7 +40,7 @@ import Shows from "./shows";
 export default class Client {
     // private static readonly log = LOG.childFor(Client);
 
-    protected readonly api: Api;
+    protected readonly _api: Api;
 
     public readonly augment: Augment;
     public readonly albums: Albums;
@@ -62,21 +62,21 @@ export default class Client {
         useOAuth2: Helpers.Http.HTTPRequestOptions["useOAuth2"];
         redis?: RedisClientType;
     }) {
-        this.api = new Api({ useOAuth2 });
+        this._api = new Api({ useOAuth2 });
 
-        this.augment = new Augment(this.api);
+        this.augment = new Augment(this._api);
 
-        this.albums = new Albums(this.api, this.augment);
-        this.artists = new Artists(this.api, this.augment);
-        this.browse = new Browse(this.api, this.augment);
-        this.follow = new Follow(this.api, this.augment);
-        this.library = new Library(this.api, this.augment);
-        this.personalization = new Personalization(this.api, this.augment);
-        this.player = new Player(this.api, this.augment);
-        this.playlists = new Playlists(this.api, this.augment);
-        this.search = new Search(this.api, this.augment);
-        this.shows = new Shows(this.api, this.augment);
-        this.tracks = new Tracks(this.api, this.augment);
+        this.albums = new Albums(this._api, this.augment);
+        this.artists = new Artists(this._api, this.augment);
+        this.browse = new Browse(this._api, this.augment);
+        this.follow = new Follow(this._api, this.augment);
+        this.library = new Library(this._api, this.augment);
+        this.personalization = new Personalization(this._api, this.augment);
+        this.player = new Player(this._api, this.augment);
+        this.playlists = new Playlists(this._api, this.augment);
+        this.search = new Search(this._api, this.augment);
+        this.shows = new Shows(this._api, this.augment);
+        this.tracks = new Tracks(this._api, this.augment);
     }
 
     // Instance Methods

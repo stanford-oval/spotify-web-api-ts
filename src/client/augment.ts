@@ -21,7 +21,7 @@ export default class Augment extends Component {
         if (isAlbumObject(album)) {
             return new CacheAlbum(album);
         }
-        return new CacheAlbum(await this.api.albums.get(album.id));
+        return new CacheAlbum(await this._api.albums.get(album.id));
     }
 
     async albums(albums: SimplifiedAlbumObject[]): Promise<CacheAlbum[]> {
@@ -35,7 +35,7 @@ export default class Augment extends Component {
             }
         }
         if (idsToGet.length > 0) {
-            for (const album of await this.api.albums.getAll(idsToGet)) {
+            for (const album of await this._api.albums.getAll(idsToGet)) {
                 albumObjects[album.id] = album;
             }
         }
@@ -60,8 +60,9 @@ export default class Augment extends Component {
             }
         }
 
-        const audioFeaturesPromise = this.api.tracks.getAudioFeatures(trackIds);
-        const artistsPromise = this.api.artists.getAll(Array.from(artistIds));
+        const audioFeaturesPromise =
+            this._api.tracks.getAudioFeatures(trackIds);
+        const artistsPromise = this._api.artists.getAll(Array.from(artistIds));
 
         const [audioFeatures, artists] = await Promise.all([
             audioFeaturesPromise,

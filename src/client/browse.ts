@@ -7,13 +7,13 @@ export default class Browse extends ApiComponent {
     getFeaturedPlaylists(
         options: BrowseOptions = {}
     ): Promise<CachePlaylist[]> {
-        return this.api.browse
+        return this._api.browse
             .getFeaturedPlaylists(options)
             .then((r) => this.augment.playlists(r.playlists.items));
     }
 
     getNewReleases(options: BrowseOptions = {}): Promise<CacheAlbum[]> {
-        return this.api.browse
+        return this._api.browse
             .getNewReleases(options)
             .then((r) => this.augment.albums(r.items));
     }

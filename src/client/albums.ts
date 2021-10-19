@@ -3,13 +3,13 @@ import ApiComponent from "./api_component";
 
 export default class Albums extends ApiComponent {
     get(id: string): Promise<CacheAlbum> {
-        return this.api.albums
+        return this._api.albums
             .get(id, { market: "from_token" })
             .then(this.augment.album.bind(this.augment));
     }
 
     getAll(ids: string[]): Promise<CacheAlbum[]> {
-        return this.api.albums
+        return this._api.albums
             .getAll(ids, { market: "from_token" })
             .then(this.augment.albums.bind(this.augment));
     }

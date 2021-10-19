@@ -13,7 +13,7 @@ export default class Shows extends ApiComponent {
         showId: string,
         options: MarketPageOptions = {}
     ): Promise<CacheEpisode[]> {
-        return this.api.shows
+        return this._api.shows
             .getEpisodes(showId, options)
             .then((page) => this.augment.episodes(page.items));
     }
@@ -30,7 +30,7 @@ export default class Shows extends ApiComponent {
             pageSize,
         });
         // TODO This can be MUCH better...
-        const page = await this.api.shows.getEpisodes(showId, {
+        const page = await this._api.shows.getEpisodes(showId, {
             limit: pageSize,
         });
         const unfinished = page.items.filter(isUnfinished);

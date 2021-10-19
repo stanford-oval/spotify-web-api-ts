@@ -19,13 +19,13 @@ interface Index {
 
 export default class Playlists extends ApiComponent {
     get(id: string): Promise<CachePlaylist> {
-        return this.api.playlists
+        return this._api.playlists
             .get(id, { market: "from_token" })
             .then(this.augment.playlist.bind(this.augment));
     }
 
     getTracks(id: string): Promise<PagingObject<PlaylistTrackObject>> {
-        return this.api.playlists.getTracks(id, { market: "from_token" });
+        return this._api.playlists.getTracks(id, { market: "from_token" });
     }
 
     getPlaylistTrackURIs(id: string): Promise<string[]> {
@@ -39,7 +39,7 @@ export default class Playlists extends ApiComponent {
         name: string,
         options: PlaylistCreateOptions = {}
     ): Promise<CachePlaylist> {
-        return this.api.playlists
+        return this._api.playlists
             .create(user_id, name, options)
             .then((playlist) => this.augment.playlist(playlist));
     }
@@ -49,12 +49,12 @@ export default class Playlists extends ApiComponent {
         uris: string | string[],
         options: PlaylistAddOptions = {}
     ): Promise<PlaylistSnapshotResponse> {
-        return this.api.playlists.add(id, arrayFor(uris), options);
+        return this._api.playlists.add(id, arrayFor(uris), options);
     }
 
     async getMy(): Promise<CachePlaylist[]> {
         const limit = 50;
-        const firstPage = await this.api.playlists.getMy({ limit });
+        const firstPage = await this._api.playlists.getMy({ limit });
         const additionalPages =
             Math.floor(firstPage.total / limit) +
             (firstPage.total % limit === 0 ? 0 : 1) -
@@ -65,7 +65,7 @@ export default class Playlists extends ApiComponent {
         const promises: Promise<PagingObject<SimplifiedPlaylistObject>>[] = [];
         for (let i = 1; i++; i <= additionalPages) {
             promises.push(
-                this.api.playlists.getMy({ limit, offset: i * limit })
+                this._api.playlists.getMy({ limit, offset: i * limit })
             );
         }
         const pages = await Promise.all(promises);

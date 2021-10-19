@@ -1,5 +1,9 @@
 import Api from "../api";
 
 export default class Component {
-    constructor(protected readonly api: Api) {}
+    protected readonly _api: Api;
+
+    constructor(api: Api) {
+        this._api = api;
+    }
 }

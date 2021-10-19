@@ -9,12 +9,12 @@ export default class Follow extends ApiComponent {
             limit?: number;
         } = {}
     ): Promise<CacheArtist[]> {
-        return this.api.follow
+        return this._api.follow
             .getMyArtists()
             .then((page) => this.augment.artists(page.items));
     }
 
     putArtists(ids: string | string[]): Promise<void> {
-        return this.api.follow.putArtists(arrayFor(ids));
+        return this._api.follow.putArtists(arrayFor(ids));
     }
 }

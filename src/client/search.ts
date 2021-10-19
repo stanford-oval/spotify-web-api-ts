@@ -10,7 +10,7 @@ export type CachePlayable = CacheTrack | CacheAlbum | CachePlaylist | CacheShow;
 
 export default class Search extends ApiComponent {
     async artists(kwds: Omit<SearchKwds, "type">): Promise<CacheArtist[]> {
-        const response = await this.api.search.search({
+        const response = await this._api.search.search({
             type: "artist",
             market: "from_token",
             ...kwds,
@@ -22,7 +22,7 @@ export default class Search extends ApiComponent {
     }
 
     async albums(kwds: Omit<SearchKwds, "type">): Promise<CacheAlbum[]> {
-        const response = await this.api.search.search({
+        const response = await this._api.search.search({
             type: "album",
             market: "from_token",
             ...kwds,
@@ -34,7 +34,7 @@ export default class Search extends ApiComponent {
     }
 
     async tracks(kwds: Omit<SearchKwds, "type">): Promise<CacheTrack[]> {
-        const response = await this.api.search.search({
+        const response = await this._api.search.search({
             type: "track",
             market: "from_token",
             ...kwds,
@@ -46,7 +46,7 @@ export default class Search extends ApiComponent {
     }
 
     async shows(kwds: Omit<SearchKwds, "type">): Promise<CacheShow[]> {
-        const response = await this.api.search.search({
+        const response = await this._api.search.search({
             type: "show",
             market: "from_token",
             ...kwds,
@@ -58,7 +58,7 @@ export default class Search extends ApiComponent {
     }
 
     async playlists(kwds: Omit<SearchKwds, "type">): Promise<CachePlaylist[]> {
-        const response = await this.api.search.search({
+        const response = await this._api.search.search({
             type: "playlist",
             market: "from_token",
             ...kwds,
@@ -76,7 +76,7 @@ export default class Search extends ApiComponent {
         offset,
         include_external,
     }: Omit<SearchKwds, "type">): Promise<CachePlayable[]> {
-        const results = await this.api.search.search({
+        const results = await this._api.search.search({
             query,
             type: "track,album,playlist,show",
             market,

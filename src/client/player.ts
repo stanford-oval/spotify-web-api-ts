@@ -7,7 +7,7 @@ import ApiComponent from "./api_component";
 
 export default class Player extends ApiComponent {
     async getCurrentlyPlaying(): Promise<null | CacheTrack | CacheEpisode> {
-        const playing = await this.api.player.getCurrentlyPlaying({
+        const playing = await this._api.player.getCurrentlyPlaying({
             market: "from_token",
         });
 
@@ -23,35 +23,35 @@ export default class Player extends ApiComponent {
     }
 
     get(): Promise<CurrentlyPlayingContextObject> {
-        return this.api.player.get();
+        return this._api.player.get();
     }
 
     getDevices(): Promise<DeviceObject[]> {
-        return this.api.player.getDevices();
+        return this._api.player.getDevices();
     }
 
     pause(options: DeviceOptions = {}): Promise<void> {
-        return this.api.player.pause(options);
+        return this._api.player.pause(options);
     }
 
     next(options: DeviceOptions = {}): Promise<void> {
-        return this.api.player.next(options);
+        return this._api.player.next(options);
     }
 
     previous(options: DeviceOptions = {}): Promise<void> {
-        return this.api.player.previous(options);
+        return this._api.player.previous(options);
     }
 
     shuffle(state: boolean, options: DeviceOptions = {}): Promise<void> {
-        return this.api.player.shuffle(state, options);
+        return this._api.player.shuffle(state, options);
     }
 
     repeat(state: RepeatState, options: DeviceOptions = {}): Promise<void> {
-        return this.api.player.repeat(state, options);
+        return this._api.player.repeat(state, options);
     }
 
     addToQueue(deviceId: string, uri: string): Promise<void> {
-        return this.api.player.addToQueue(deviceId, uri);
+        return this._api.player.addToQueue(deviceId, uri);
     }
 
     play({
@@ -84,7 +84,7 @@ export default class Player extends ApiComponent {
             }
         }
 
-        return this.api.player.play({
+        return this._api.player.play({
             device_id,
             uris,
             context_uri,
