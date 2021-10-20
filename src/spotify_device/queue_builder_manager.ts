@@ -9,11 +9,11 @@ export type ActiveDeviceResolver = (env: ExecWrapper) => Promise<DeviceObject>;
 export type PlayCallback = (kwds: {
     uris: string | string[];
     device_id?: string;
-}) => Promise<any>;
+}) => Promise<void>;
 export type AddToQueueCallback = (
     device_id: string,
     uri: string
-) => Promise<any>;
+) => Promise<void>;
 
 export default class QueueBuilderManager {
     private static readonly LOG = LOG.childFor(QueueBuilderManager);
@@ -101,14 +101,16 @@ export default class QueueBuilderManager {
             this._backgroundBuilders.delete(appId);
         }
 
-        log.debug("Requesting playing initial URIs...", { uris });
-        await this._play({
-            device_id: builder.device.id,
+        log.debug("Requesting playing initial URIs (async background)...", {
             uris,
         });
-
-        log.debug("Kicking off background flush...");
-        this._backgroundFlush(builder);
+        this._play({
+            device_id: builder.device.id,
+            uris,
+        }).then(() => {
+            log.debug("Kicking off background flush...");
+            return this._backgroundFlush(builder);
+        });
     }
 
     protected async _backgroundFlush(builder: QueueBuilder) {
