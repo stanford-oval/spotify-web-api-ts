@@ -400,7 +400,7 @@ export default class SpotifyDevice extends BaseDevice {
 
             if (devices.length === 0) {
                 log.error("Failed to launch/initialize any player devices");
-                throw new ThingError("No player devices", "no_devices");
+                throw new ThingError("No player devices", "no_active_device");
             }
         }
 
@@ -417,10 +417,13 @@ export default class SpotifyDevice extends BaseDevice {
             }
         }
 
-        const activeDevice = devices.find((device) => device.is_active);
+        let activeDevice = devices.find((device) => device.is_active);
         if (activeDevice === undefined) {
-            log.error("No active device found", { devices });
-            throw new ThingError("No active device", "no_active_device");
+            activeDevice = devices[0];
+            log.error("No active device found, returning first device", {
+                activeDevice,
+            });
+            // throw new ThingError("No active device", "no_active_device");
         } else {
             log.debug("Found active device, returning.", { activeDevice });
         }
