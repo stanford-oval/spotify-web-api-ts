@@ -85,11 +85,19 @@ function genieGet(
             params,
             hints,
         });
+        const proxy = new Proxy(this, {
+            get(target, prop, receiver) {
+                if (prop === "log") {
+                    return log;
+                }
+                return Reflect.get(target, prop, receiver);
+            },
+        });
         log.debug("Start Genie GET request");
         const profiler = log.startTimer();
         let response: ReturnType<typeof fn>;
         try {
-            response = await fn.call(this, params, hints, env);
+            response = await fn.call(proxy, params, hints, env);
         } catch (error: any) {
             this._handleError(profiler, error);
         }
@@ -533,6 +541,26 @@ export default class SpotifyDevice extends BaseDevice {
             return (await this._client.getAnyPlayable()).map((playable) =>
                 playable.toThing(this._formatTitle.bind(this))
             );
+        }
+
+        if (query.isArtistQuery() && isEntity(query.artist)) {
+            this.log.debug(
+                "Optimizing artist Entity search to artists.getTopTracks"
+            );
+            const artistId = uriId(query.artist.value);
+            return (await this._client.artists.getTopTracks(artistId)).map(
+                (track) => track.toThing(this._formatTitle.bind(this))
+            );
+        }
+
+        if (query.isAlbumQuery() && isEntity(query.album)) {
+            this.log.debug("Optimizing album Entity search to albums.get");
+            const albumId = uriId(query.album.value);
+            return [
+                (await this._client.albums.get(albumId)).toThing(
+                    this._formatTitle.bind(this)
+                ),
+            ];
         }
 
         return (await this._client.search.playables({ query, limit: 1 })).map(

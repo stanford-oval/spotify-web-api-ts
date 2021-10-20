@@ -245,6 +245,32 @@ export class SearchQuery {
         ].every((v) => v === undefined);
     }
 
+    isArtistQuery(): boolean {
+        return (
+            [
+                this._album,
+                this._any,
+                this._genre,
+                this._tag,
+                this._track,
+                this._year,
+            ].every((v) => v === undefined) && this._artist !== undefined
+        );
+    }
+
+    isAlbumQuery(): boolean {
+        return (
+            [
+                this._artist,
+                this._any,
+                this._genre,
+                this._tag,
+                this._track,
+                this._year,
+            ].every((v) => v === undefined) && this._album !== undefined
+        );
+    }
+
     encodeYear(): undefined | string {
         if (this._year === undefined) {
             return undefined;
