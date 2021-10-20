@@ -19,7 +19,7 @@ function stringFor(value: any): undefined | string {
     const valueType = typeof value;
     if (valueType !== "string") {
         console.warn(`Converting unexpected ${valueType} to string: ${value}`);
-        value = value.toString();
+        value = String(value);
     }
     if (value === "") {
         console.warn(`Empty string is not valid, returning undefined`);
@@ -96,15 +96,17 @@ function encodeYear(
     if (typeof year === "string") {
         return year;
     }
-    return year.toString();
+    return String(year);
 }
 
 export class SearchQuery {
     public static normalize(value: any): string {
-        if (value instanceof Value.Entity) {
+        if (value === undefined) {
+            return "";
+        } else if (value instanceof Value.Entity) {
             value = value.display;
         } else if (typeof value !== "string") {
-            value = value.toString();
+            value = String(value);
         }
         return value.toLocaleLowerCase();
     }

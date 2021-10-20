@@ -49,11 +49,11 @@ export default class Http {
                     if (value instanceof Date) {
                         searchQueryObj[key] = value.toISOString();
                     } else {
-                        searchQueryObj[key] = value.toString();
+                        searchQueryObj[key] = String(value);
                     }
                 }
             }
-            url.search = new URLSearchParams(searchQueryObj).toString();
+            url.search = String(new URLSearchParams(searchQueryObj));
         }
         return url;
     }
@@ -70,10 +70,7 @@ export default class Http {
                 } catch (parseError) {}
                 const message = detail?.error?.message;
                 if (message) {
-                    throw new ThingError(
-                        message.toString(),
-                        `http_${error.code}`
-                    );
+                    throw new ThingError(String(message), `http_${error.code}`);
                 } else {
                     throw new ThingError(
                         `HTTP ${error.code} Error`,

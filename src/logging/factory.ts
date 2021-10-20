@@ -49,7 +49,7 @@ export default class Factory {
 
     public get(filePath: string, options: Winston.LoggerOptions = {}): Logger {
         const id = LoggerId.from(this.packageName, filePath, this.runRoot);
-        const key = id.toString();
+        const key = String(id);
         if (Winston.loggers.has(key)) {
             return Winston.loggers.get(key) as Logger;
         }

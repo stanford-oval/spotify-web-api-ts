@@ -110,7 +110,7 @@ export class PrettySimple {
         if (!this.colorize) {
             // If we're not using colors then there's no reason to deal with
             // the individual parts
-            return info.logger.toString();
+            return String(info.logger);
         }
         let id =
             this.style(info.logger.packageName, "id.packageName") +
@@ -189,7 +189,7 @@ export class PrettySimple {
         return (
             LEVEL_COL_SPACER +
             "⏱".padEnd(4) +
-            this.style(amount.toString().padStart(6), "duration.amount") +
+            this.style(String(amount).padStart(6), "duration.amount") +
             " " +
             this.style(units, "duration.units") +
             "\n"
