@@ -93,7 +93,7 @@ function genieGet(
         } catch (error: any) {
             this._handleError(profiler, error);
         }
-        profiler.done({ level: "info" });
+        profiler.done({ level: "info", response });
         return response;
     };
 }
@@ -342,6 +342,8 @@ export default class SpotifyDevice extends BaseDevice {
         if (devices.length === 0) {
             log.warn("Failed to launch Spotify desktop app, won't try again.");
             this._failedToLaunchDesktopApp = true;
+        } else {
+            log.debug("(Presumably) launched Spotify desktop app", { devices });
         }
 
         return devices;
@@ -354,15 +356,22 @@ export default class SpotifyDevice extends BaseDevice {
 
         let devices = await this._client.player.getDevices();
 
-        if (devices.length === 0) {
+        if (devices.length > 0) {
+            log.debug("Found player devices", { devices });
+        } else {
             log.warn("No player devices available");
 
             if (this._canLaunchDesktopApp()) {
                 devices = await this._launchDesktopApp();
+            } else {
+                log.debug("Can't launch Spotify desktop app");
             }
 
             // try initializing the player using the audio controller
             if (this.engine.audio && this.engine.audio.checkCustomPlayer) {
+                log.debug(
+                    "Try initializing the player using the audio controller..."
+                );
                 const ok = await this.engine.audio.checkCustomPlayer(
                     {
                         type: "spotify",
@@ -373,8 +382,20 @@ export default class SpotifyDevice extends BaseDevice {
                 );
 
                 if (ok) {
+                    log.debug(
+                        "Audio controller initialized, getting devices..."
+                    );
                     devices = await this._client.player.getDevices();
+
+                    if (devices.length > 0) {
+                        log.debug(
+                            "Found devices after audio controller initialization.",
+                            { devices }
+                        );
+                    }
                 }
+            } else {
+                log.debug("Audio controller unavailable");
             }
 
             if (devices.length === 0) {
@@ -398,7 +419,10 @@ export default class SpotifyDevice extends BaseDevice {
 
         const activeDevice = devices.find((device) => device.is_active);
         if (activeDevice === undefined) {
+            log.error("No active device found", { devices });
             throw new ThingError("No active device", "no_active_device");
+        } else {
+            log.debug("Found active device, returning.", { activeDevice });
         }
         return activeDevice;
     }
