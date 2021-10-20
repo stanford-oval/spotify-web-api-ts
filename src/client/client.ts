@@ -29,6 +29,7 @@ import Player from "./player";
 import Playlists from "./playlists";
 import Search from "./search";
 import Shows from "./shows";
+import Users from "./users";
 
 // Constants
 // ===========================================================================
@@ -54,6 +55,7 @@ export default class Client {
     public readonly search: Search;
     public readonly shows: Shows;
     public readonly tracks: Tracks;
+    public readonly users: Users;
 
     constructor({
         useOAuth2,
@@ -77,6 +79,7 @@ export default class Client {
         this.search = new Search(this._api, this.augment);
         this.shows = new Shows(this._api, this.augment);
         this.tracks = new Tracks(this._api, this.augment);
+        this.users = new Users(this._api, this.augment);
     }
 
     // Instance Methods

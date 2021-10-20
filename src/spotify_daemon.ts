@@ -62,7 +62,7 @@ export interface SpotifyDaemonOptions {
     cacheDir: string;
     username: string;
     device_name: string;
-    token: null | string;
+    token?: string;
     version: string;
 }
 
@@ -85,7 +85,7 @@ export default class SpotifyDaemon {
         this._init();
     }
 
-    set token(token: null | string) {
+    set token(token: undefined | string) {
         this.options.token = token;
     }
 

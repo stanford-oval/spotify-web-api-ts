@@ -21,6 +21,7 @@ import PlaylistsApi from "./apis/playlists_api";
 import SearchApi from "./apis/search_api";
 import ShowsApi from "./apis/shows_api";
 import TracksApi from "./apis/tracks_api";
+import UsersApi from "./apis/users_api";
 
 // Class Definition
 // ===========================================================================
@@ -40,6 +41,7 @@ export default class Api {
     public readonly search: SearchApi;
     public readonly shows: ShowsApi;
     public readonly tracks: TracksApi;
+    public readonly users: UsersApi;
 
     constructor({
         useOAuth2,
@@ -60,5 +62,6 @@ export default class Api {
         this.search = new SearchApi(this.http);
         this.shows = new ShowsApi(this.http);
         this.tracks = new TracksApi(this.http);
+        this.users = new UsersApi(this.http);
     }
 }

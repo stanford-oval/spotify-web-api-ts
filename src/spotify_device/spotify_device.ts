@@ -1,4 +1,6 @@
-import { BaseDevice, BaseEngine, Helpers, Value } from "thingpedia";
+import { strict as assert } from "assert";
+
+import { BaseDevice, Helpers, Value } from "thingpedia";
 import * as Winston from "winston";
 import {
     CompiledQueryHints,
@@ -8,7 +10,6 @@ import {
 import SpotifyDaemon from "../spotify_daemon";
 import Client from "../client";
 import {
-    ExecWrapper,
     isEntity,
     ThingAlbum,
     ThingArtist,
@@ -20,7 +21,7 @@ import {
     ThingTrack,
 } from "../things";
 import { SearchQuery } from "../api/search_query";
-import Logging from "../logging";
+import Logging, { Logger } from "../logging";
 import {
     cast,
     isJSONParseEmptyInputError,
@@ -34,7 +35,14 @@ import CacheEpisode from "../cache/cache_episode";
 import { CurrentlyPlayingContextObject, DeviceObject } from "../api/objects";
 import { buildQuery, invokeSearch } from "./helpers";
 import QueueBuilderManager from "./queue_builder_manager";
-import { isOnOff } from "./types";
+import {
+    isOnOff,
+    Params,
+    SpotifyDeviceEngine,
+    SpotifyDeviceState,
+    Tokenizer,
+    ExecWrapper,
+} from "./types";
 import { isRepeatState } from "../api/requests";
 
 // Constants
@@ -42,52 +50,15 @@ import { isRepeatState } from "../api/requests";
 
 const LOG = Logging.get(__filename);
 
-// Types
+const DESKTOP_APP_WAIT_MS = 20000; // 20 seconds
+
+// Decorators
 // ===========================================================================
-
-export interface SpotifyDeviceState extends BaseDevice.DeviceState {
-    id: string;
-}
-
-export interface Tokenizer {
-    _parseWordNumber(word: string): number;
-}
-
-export interface LangPack {
-    getTokenizer(): Tokenizer;
-}
-
-export interface AudioDevice {
-    /**
-     * Stop all playback.
-     */
-    stop(conversationId: string): void;
-
-    /**
-     * Pause all playback.
-     */
-    pause?(conversationId: string): void;
-
-    /**
-     * Resume playback.
-     */
-    resume?(conversationId: string): void;
-}
-
-export interface AudioController {
-    requestAudio(
-        device: BaseDevice,
-        iface: AudioDevice | (() => Promise<void>),
-        conversationId?: string
-    ): Promise<void>;
-}
-
-export interface SpotifyDeviceEngine extends BaseEngine {
-    langPack: LangPack;
-    audio?: AudioController;
-}
-
-type Params = Record<string, any>;
+//
+// In here since it's easiest to have them reference SpotifyDevice instead of
+// defining a separate interface or creating a circular dependency (not sure
+// how JS runtimes deal with that).
+//
 
 function genieGet(
     target: Object,
@@ -144,7 +115,6 @@ function genieDo(
     ) {
         const log = this.log.childFor(fn, {
             "request.type": "do",
-            "state.id": this.state.id,
             "env.app.uniqueId": env.app.uniqueId,
             params,
         });
@@ -165,18 +135,22 @@ function genieDo(
     };
 }
 
+// Class Definition
+// ===========================================================================
+
 export default class SpotifyDevice extends BaseDevice {
-    private static readonly log = LOG.childFor(Client);
+    // private static readonly log = LOG.childFor(SpotifyDevice);
 
     // TODO Unsure what this is here for...
     public uniqueId: string;
-    public accessToken: null | string = null;
-    public spotifyd: null | SpotifyDaemon = null;
+    public accessToken: undefined | string = undefined;
+    public spotifyd: undefined | SpotifyDaemon = undefined;
+    public readonly log: Logger;
 
     public state: SpotifyDeviceState;
 
     protected _tokenizer: Tokenizer;
-    protected _launchedSpotify: boolean = false;
+    protected _failedToLaunchDesktopApp: boolean = false;
     protected _client: Client;
     protected _queueBuilders: QueueBuilderManager;
 
@@ -185,6 +159,9 @@ export default class SpotifyDevice extends BaseDevice {
         this.state = state;
         this.uniqueId = `com.spotify-${this.state.id}`;
         this._tokenizer = engine.langPack.getTokenizer();
+
+        this.log = LOG.childFor(SpotifyDevice, { "state.id": state.id });
+        this.log.debug("Constructing...");
 
         if (this.platform.type === "server") {
             this.spotifyd = new SpotifyDaemon({
@@ -209,33 +186,38 @@ export default class SpotifyDevice extends BaseDevice {
                 this._client.player
             ),
         });
+
+        this.log.debug("Constructed.");
     }
 
     get engine(): SpotifyDeviceEngine {
         return super.engine as SpotifyDeviceEngine;
     }
 
-    get log() {
-        return SpotifyDevice.log;
-    }
-
-    updateOAuth2Token(
+    async updateOAuth2Token(
         accessToken: string,
         refreshToken: string,
         extraData: {
             [key: string]: unknown;
         }
     ): Promise<void> {
+        this.log.debug("Updating access token...");
         if (this.spotifyd && this.accessToken !== accessToken) {
+            this.log.debug(
+                "Setting spotifyd access token and triggering reload..."
+            );
             this.spotifyd.token = accessToken;
             this.spotifyd.reload();
         }
-        return super.updateOAuth2Token(accessToken, refreshToken, extraData);
+        await super.updateOAuth2Token(accessToken, refreshToken, extraData);
+        this.log.debug("Access token updated.");
     }
 
-    async start() {
+    async start(): Promise<void> {
+        this.log.debug("Starting...");
         // make a harmless GET request to start so we'll refresh the access token
-        // await this.http_get('https://api.spotify.com/v1/me');
+        await this._client.users.me();
+        this.log.debug("Stared.");
     }
 
     // Helper Instance Methods
@@ -281,15 +263,94 @@ export default class SpotifyDevice extends BaseDevice {
         }
     }
 
-    protected async _getActiveDevice(env: ExecWrapper): Promise<DeviceObject> {
-        const log = SpotifyDevice.log.childFor(this._getActiveDevice);
+    protected _canLaunchDesktopApp(): boolean {
+        const log = this.log.childFor(this._canLaunchDesktopApp);
+        if (this._failedToLaunchDesktopApp) {
+            log.debug("Unable to launch desktop app -- failed to in the past");
+            return false;
+        }
+        if (this.platform.hasCapability("app-launcher")) {
+            log.debug(
+                "Able to launch desktop app -- has 'app-launcher' capability"
+            );
+            return true;
+        } else {
+            log.debug(
+                "Unable to launch desktop app -- no 'app-launcher' capability"
+            );
+            return false;
+        }
+    }
+
+    protected async _launchDesktopApp(): Promise<DeviceObject[]> {
+        const log = this.log.childFor(this._getActiveDevice);
+
+        const appLauncher = this.platform.getCapability("app-launcher");
+
+        assert(
+            appLauncher !== null,
+            "appLauncher is null -- did you call _canLaunchDesktopApp() first?"
+        );
+
+        log.debug("Launching Spotify desktop app...");
+        await appLauncher.launchApp("com.spotify.Client.desktop");
+
+        log.debug(
+            `Async sleeping for ${DESKTOP_APP_WAIT_MS / 1000} seconds...`
+        );
+        await new Promise((resolve) =>
+            setTimeout(resolve, DESKTOP_APP_WAIT_MS)
+        );
+
+        log.debug("Getting player devices again...");
         const devices = await this._client.player.getDevices();
+
         if (devices.length === 0) {
-            throw new ThingError("No player devices", "no_devices");
+            log.warn("Failed to launch Spotify desktop app, won't try again.");
+            this._failedToLaunchDesktopApp = true;
+        }
+
+        return devices;
+    }
+
+    protected async _getActiveDevice(env: ExecWrapper): Promise<DeviceObject> {
+        const log = this.log.childFor(this._getActiveDevice);
+
+        log.debug("Getting active player device...");
+
+        let devices = await this._client.player.getDevices();
+
+        if (devices.length === 0) {
+            log.warn("No player devices available");
+
+            if (this._canLaunchDesktopApp()) {
+                devices = await this._launchDesktopApp();
+            }
+
+            // try initializing the player using the audio controller
+            if (this.engine.audio && this.engine.audio.checkCustomPlayer) {
+                const ok = await this.engine.audio.checkCustomPlayer(
+                    {
+                        type: "spotify",
+                        username: this.state.id,
+                        accessToken: this.accessToken,
+                    },
+                    env.conversation
+                );
+
+                if (ok) {
+                    devices = await this._client.player.getDevices();
+                }
+            }
+
+            if (devices.length === 0) {
+                log.error("Failed to launch/initialize any player devices");
+                throw new ThingError("No player devices", "no_devices");
+            }
         }
 
         // Prefer spotifyd if we have one ("server" platform)
-        if (this.spotifyd !== null) {
+        if (this.spotifyd !== undefined) {
             const spotifydDevice = devices.find(
                 (device) => device.id === this.spotifyd?.deviceId
             );

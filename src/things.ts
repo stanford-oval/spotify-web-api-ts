@@ -1,5 +1,4 @@
 import { Value } from "thingpedia";
-import { ExecEnvironment } from "thingtalk";
 
 export class ThingError extends Error {
     code: string;
@@ -9,16 +8,6 @@ export class ThingError extends Error {
         this.code = code;
     }
 }
-
-/**
- * @see https://github.com/stanford-oval/genie-toolkit/blob/dd3aa4d2ed78c94e0243b89d6e9c34d2fb1722cd/lib/engine/apps/exec_wrapper.ts#L218
- */
-export type ExecWrapper = ExecEnvironment & {
-    app: {
-        uniqueId: string;
-    };
-    addExitProcedureHook(hook: () => void | Promise<void>): void;
-};
 
 export interface ThingTrack {
     id: Value.Entity;

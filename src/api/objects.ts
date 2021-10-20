@@ -441,3 +441,21 @@ export interface CurrentlyPlayingContextObject extends CurrentlyPlayingObject {
     repeat_state: "off" | "track" | "context";
     shuffle_state: boolean;
 }
+
+export interface UserObject {
+    type: "user";
+    country?: string;
+    display_name: null | string;
+    email?: string;
+    explicit_content?: {
+        filter_enabled: boolean;
+        filter_locked: boolean;
+    };
+    external_urls: ExternalUrlObject;
+    followers: FollowersObject;
+    href: string;
+    id: string;
+    images: ImageObject[];
+    product?: string;
+    uri: string;
+}
