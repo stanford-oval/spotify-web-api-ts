@@ -17,7 +17,7 @@ export default class Artists extends ApiComponent {
 
     getTopTracks(id: string): Promise<CacheTrack[]> {
         return this._api.artists
-            .getTopTracks(id)
+            .getTopTracks(id, { market: "from_token" })
             .then(this.augment.tracks.bind(this.augment));
     }
 
