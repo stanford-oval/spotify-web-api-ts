@@ -417,15 +417,27 @@ export default class SpotifyDevice extends BaseDevice {
             }
         }
 
-        let activeDevice = devices.find((device) => device.is_active);
-        if (activeDevice === undefined) {
-            activeDevice = devices[0];
-            log.error("No active device found, returning first device", {
-                activeDevice,
+        // Prefer the Genie C++ client, if available
+        const genieCPPDevice = devices.find(
+            (device) => device.name === "genie-cpp"
+        );
+        if (genieCPPDevice !== undefined) {
+            log.debug("Found genie-cpp device, returning", {
+                device: genieCPPDevice,
             });
-            // throw new ThingError("No active device", "no_active_device");
+            return genieCPPDevice;
+        }
+
+        const activeDevice = devices.find((device) => device.is_active);
+        if (activeDevice === undefined) {
+            log.warn("No active device found, returning first device", {
+                device: devices[0],
+            });
+            return devices[0];
         } else {
-            log.debug("Found active device, returning.", { activeDevice });
+            log.debug("Found active device, returning.", {
+                device: activeDevice,
+            });
         }
         return activeDevice;
     }
