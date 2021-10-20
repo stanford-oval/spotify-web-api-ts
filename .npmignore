@@ -1,0 +1,8 @@
+.vscode/
+dev/
+src/
+tmp/
+.gitignore
+.node-version
+.prettierrc
+tsconfig.json
