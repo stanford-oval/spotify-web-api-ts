@@ -438,16 +438,19 @@ export default class SpotifyDevice extends BaseDevice {
         uris?: string | string[];
     }): Promise<void> {
         const log = this.log.childFor(this._negotiatePlay, { device_id, uris });
+
+        log.debug("Negotiating play...");
+
         if (isTestMode()) {
             log.debug("In test mode, aborting.");
             return;
         }
 
         if (this.engine.audio) {
-            log.debug("Engine has ");
+            log.debug("Engine has audio controller, requesting audio...");
             await this.engine.audio.requestAudio(this, {
                 resume: async () => {
-                    log.debug("resuming audio");
+                    log.debug("Audio controller -- resuming audio");
                     try {
                         await this._client.player.play({ device_id });
                     } catch (error: any) {
@@ -456,7 +459,7 @@ export default class SpotifyDevice extends BaseDevice {
                 },
 
                 stop: async () => {
-                    log.debug("stopping audio");
+                    log.debug("Audio controller -- stopping audio");
                     try {
                         await this._client.player.pause({ device_id });
                     } catch (error: any) {
@@ -464,14 +467,17 @@ export default class SpotifyDevice extends BaseDevice {
                     }
                 },
             });
+            log.debug("Audio control received.");
         }
 
+        log.debug("Playing...");
         try {
             await this._client.player.play({
                 device_id,
                 uris,
             });
         } catch (error) {
+            log.error("Error playing", { error });
             const player_info = await this._client.player.get();
             if (player_info) {
                 //regular spotify players will throw an error when songs are
@@ -482,6 +488,7 @@ export default class SpotifyDevice extends BaseDevice {
                 throw new ThingError("Player Error", "player_error");
             }
         }
+        log.debug("Played.");
     }
 
     // Genie Instance Methods
