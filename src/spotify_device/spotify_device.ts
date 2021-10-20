@@ -51,6 +51,7 @@ import { isRepeatState } from "../api/requests";
 const LOG = Logging.get(__filename);
 
 const DESKTOP_APP_WAIT_MS = 20000; // 20 seconds
+// const HAS_NUMBERS_REGEX = /\d/g;
 
 // Decorators
 // ===========================================================================
@@ -176,6 +177,7 @@ export default class SpotifyDevice extends BaseDevice {
 
         this._client = new Client({
             useOAuth2: this as Helpers.Http.HTTPRequestOptions["useOAuth2"],
+            displayFormatter: this._formatTitle.bind(this),
         });
 
         this._queueBuilders = new QueueBuilderManager({
@@ -222,6 +224,35 @@ export default class SpotifyDevice extends BaseDevice {
 
     // Helper Instance Methods
     // -----------------------------------------------------------------------
+
+    /**
+     * Convert all instances of numbers to digits
+     */
+    protected _formatTitle(title: string): string {
+        // TODO Why was this being done?
+        return title;
+        // let result = "";
+        // for (const word of title.split(" ")) {
+        //     if (HAS_NUMBERS_REGEX.test(word)) {
+        //         result += word + " ";
+        //     } else {
+        //         const parsed = this._tokenizer._parseWordNumber(word);
+        //         if (isNaN(parsed)) {
+        //             result += word + " ";
+        //         } else if (
+        //             parsed === 0 &&
+        //             word !== "zero" &&
+        //             word !== "zeroth" &&
+        //             word !== "zeroeth"
+        //         ) {
+        //             result += word + " ";
+        //         } else {
+        //             result += parsed + " ";
+        //         }
+        //     }
+        // }
+        // return result.trim();
+    }
 
     protected _handleError(profiler: Winston.Profiler, error: any): never {
         if (error instanceof ThingError) {
@@ -435,7 +466,7 @@ export default class SpotifyDevice extends BaseDevice {
     ): Promise<ThingPlayable[]> {
         if (!hints.filter) {
             return (await this._client.getAnyPlayable()).map((playable) =>
-                playable.toThing()
+                playable.toThing(this._formatTitle.bind(this))
             );
         }
 
@@ -450,12 +481,12 @@ export default class SpotifyDevice extends BaseDevice {
 
         if (query.isEmpty()) {
             return (await this._client.getAnyPlayable()).map((playable) =>
-                playable.toThing()
+                playable.toThing(this._formatTitle.bind(this))
             );
         }
 
         return (await this._client.search.playables({ query, limit: 5 })).map(
-            (playable) => playable.toThing()
+            (playable) => playable.toThing(this._formatTitle.bind(this))
         );
     }
 
@@ -472,7 +503,7 @@ export default class SpotifyDevice extends BaseDevice {
                 this._client.search.artists.bind(this._client),
                 this._client.getAnyArtists.bind(this._client)
             )
-        ).map((x) => x.toThing());
+        ).map((x) => x.toThing(this._formatTitle.bind(this)));
     }
 
     @genieGet
@@ -488,7 +519,7 @@ export default class SpotifyDevice extends BaseDevice {
                 this._client.search.tracks.bind(this._client),
                 this._client.getAnyTracks.bind(this._client)
             )
-        ).map((x) => x.toThing());
+        ).map((x) => x.toThing(this._formatTitle.bind(this)));
     }
 
     @genieGet
@@ -504,7 +535,7 @@ export default class SpotifyDevice extends BaseDevice {
                 this._client.search.albums.bind(this._client),
                 this._client.getAnyAlbums.bind(this._client)
             )
-        ).map((x) => x.toThing());
+        ).map((x) => x.toThing(this._formatTitle.bind(this)));
     }
 
     @genieGet
@@ -520,7 +551,7 @@ export default class SpotifyDevice extends BaseDevice {
                 this._client.search.shows.bind(this._client),
                 this._client.getAnyShows.bind(this._client)
             )
-        ).map((x) => x.toThing());
+        ).map((x) => x.toThing(this._formatTitle.bind(this)));
     }
 
     @genieGet
@@ -536,7 +567,7 @@ export default class SpotifyDevice extends BaseDevice {
                 this._client.search.playlists.bind(this._client),
                 this._client.getAnyPlaylists.bind(this._client)
             )
-        ).map((x) => x.toThing());
+        ).map((x) => x.toThing(this._formatTitle.bind(this)));
     }
 
     @genieGet
@@ -549,7 +580,9 @@ export default class SpotifyDevice extends BaseDevice {
         return this._client.personalization
             .getMyTopTracks()
             .then((tracks) =>
-                tracks.map((track) => ({ song: track.toThing() }))
+                tracks.map((track) => ({
+                    song: track.toThing(this._formatTitle.bind(this)),
+                }))
             );
     }
 
@@ -574,7 +607,7 @@ export default class SpotifyDevice extends BaseDevice {
         if (response === null) {
             return null;
         }
-        return response.toThing();
+        return response.toThing(this._formatTitle.bind(this));
     }
 
     @genieGet
@@ -634,7 +667,9 @@ export default class SpotifyDevice extends BaseDevice {
     ): Promise<ThingTrack[]> {
         return this._client.library
             .getTracks()
-            .then((list) => list.map((item) => item.toThing()));
+            .then((list) =>
+                list.map((item) => item.toThing(this._formatTitle.bind(this)))
+            );
     }
 
     @genieGet
@@ -645,7 +680,9 @@ export default class SpotifyDevice extends BaseDevice {
     ): Promise<ThingAlbum[]> {
         return this._client.library
             .getAlbums()
-            .then((list) => list.map((item) => item.toThing()));
+            .then((list) =>
+                list.map((item) => item.toThing(this._formatTitle.bind(this)))
+            );
     }
 
     @genieGet
@@ -656,7 +693,9 @@ export default class SpotifyDevice extends BaseDevice {
     ): Promise<ThingShow[]> {
         return this._client.library
             .getShows()
-            .then((list) => list.map((item) => item.toThing()));
+            .then((list) =>
+                list.map((item) => item.toThing(this._formatTitle.bind(this)))
+            );
     }
 
     @genieGet
@@ -667,7 +706,9 @@ export default class SpotifyDevice extends BaseDevice {
     ): Promise<ThingArtist[]> {
         return this._client.follow
             .getMyArtists()
-            .then((list) => list.map((item) => item.toThing()));
+            .then((list) =>
+                list.map((item) => item.toThing(this._formatTitle.bind(this)))
+            );
     }
 
     // ### Actions ###########################################################

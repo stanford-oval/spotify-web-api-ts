@@ -10,7 +10,7 @@ import {
     SimplifiedPlaylistObject,
 } from "../api/objects";
 import { ThingPlaylist } from "../things";
-import CacheEntity from "./cache_entity";
+import CacheEntity, { DisplayFormatter } from "./cache_entity";
 
 function isPlaylistObject(
     playlist: SimplifiedPlaylistObject | PlaylistObject
@@ -63,9 +63,9 @@ export default class CachePlaylist
         this.tracks = playlist.tracks;
     }
 
-    toThing(): ThingPlaylist {
+    toThing(formatter: DisplayFormatter): ThingPlaylist {
         return {
-            id: this.entity,
+            id: this.entity(formatter),
         };
     }
 }

@@ -6,7 +6,7 @@ import {
     ResumePointObject,
 } from "../api/objects";
 import { ThingEpisode } from "../things";
-import CacheEntity from "./cache_entity";
+import CacheEntity, { DisplayFormatter } from "./cache_entity";
 
 export default class CacheEpisode extends CacheEntity implements EpisodeObject {
     // Properties
@@ -56,9 +56,9 @@ export default class CacheEpisode extends CacheEntity implements EpisodeObject {
         this.resume_point = episode.resume_point;
     }
 
-    toThing(): ThingEpisode {
+    toThing(formatter: DisplayFormatter): ThingEpisode {
         return {
-            id: this.entity,
+            id: this.entity(formatter),
         };
     }
 }

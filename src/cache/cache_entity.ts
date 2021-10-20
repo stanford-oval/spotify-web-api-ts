@@ -1,5 +1,7 @@
 import { Value } from "thingpedia";
 
+export type DisplayFormatter = (name: string) => string;
+
 /**
  * Cached  that we can represent as `thingpedia.Value.Entity`
  * instances.
@@ -14,13 +16,14 @@ export default class CacheEntity {
         public uri: string
     ) {}
 
-    get entity(): Value.Entity {
-        return new Value.Entity(this.uri, this.name);
+    entity(formatter?: DisplayFormatter): Value.Entity {
+        const name = formatter === undefined ? this.name : formatter(this.name);
+        return new Value.Entity(this.uri, name);
     }
 
-    toThing() {
+    toThing(formatter: DisplayFormatter) {
         return {
-            id: this.entity,
+            id: this.entity(formatter),
         };
     }
 }

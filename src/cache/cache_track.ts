@@ -11,7 +11,7 @@ import {
     TrackRestrictionObject,
 } from "../api/objects";
 import { ThingTrack } from "../things";
-import CacheEntity from "./cache_entity";
+import CacheEntity, { DisplayFormatter } from "./cache_entity";
 
 export const DEFAULT_AUDIO_FEATURE = 50;
 
@@ -119,9 +119,9 @@ export default class CacheTrack extends CacheEntity implements TrackObject {
         return new Date(this.album.release_date);
     }
 
-    toThing(): ThingTrack {
+    toThing(formatter: DisplayFormatter): ThingTrack {
         return {
-            id: this.entity,
+            id: this.entity(formatter),
             artists: this.artistEntities,
             album: this.albumEntity,
             genres: this.genres,

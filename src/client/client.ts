@@ -13,7 +13,7 @@ import CacheTrack from "../cache/cache_track";
 import Api from "../api";
 import CacheAlbum from "../cache/cache_album";
 import CacheArtist from "../cache/cache_artist";
-import CacheEntity from "../cache/cache_entity";
+import CacheEntity, { DisplayFormatter } from "../cache/cache_entity";
 import CachePlaylist from "../cache/cache_playlist";
 import CacheShow from "../cache/cache_show";
 import { assertUnreachable, uriId, uriType } from "../helpers";
@@ -59,9 +59,11 @@ export default class Client {
 
     constructor({
         useOAuth2,
+        displayFormatter,
         redis,
     }: {
         useOAuth2: Helpers.Http.HTTPRequestOptions["useOAuth2"];
+        displayFormatter: DisplayFormatter;
         redis?: RedisClientType;
     }) {
         this._api = new Api({ useOAuth2 });

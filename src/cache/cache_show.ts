@@ -5,7 +5,7 @@ import {
     CopyrightObject,
 } from "../api/objects";
 import { ThingShow } from "../things";
-import CacheEntity from "./cache_entity";
+import CacheEntity, { DisplayFormatter } from "./cache_entity";
 
 export default class CacheShow extends CacheEntity implements ShowObject {
     // Properties
@@ -45,9 +45,9 @@ export default class CacheShow extends CacheEntity implements ShowObject {
         this.publisher = show.publisher;
     }
 
-    toThing(): ThingShow {
+    toThing(formatter: DisplayFormatter): ThingShow {
         return {
-            id: this.entity,
+            id: this.entity(formatter),
             publisher: this.publisher,
         };
     }

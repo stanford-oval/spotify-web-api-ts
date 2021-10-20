@@ -11,7 +11,7 @@ import {
     SimplifiedTrackObject,
 } from "../api/objects";
 import { ThingAlbum } from "../things";
-import CacheEntity from "./cache_entity";
+import CacheEntity, { DisplayFormatter } from "./cache_entity";
 
 export default class CacheAlbum extends CacheEntity implements AlbumObject {
     // Properties
@@ -73,9 +73,9 @@ export default class CacheAlbum extends CacheEntity implements AlbumObject {
         return new Date(this.release_date);
     }
 
-    toThing(): ThingAlbum {
+    toThing(formatter: DisplayFormatter): ThingAlbum {
         return {
-            id: this.entity,
+            id: this.entity(formatter),
             artists: this.artistEntities,
             release_date: this.releaseDate,
             popularity: this.popularity,

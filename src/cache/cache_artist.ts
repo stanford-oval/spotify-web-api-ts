@@ -1,6 +1,6 @@
 import { ArtistObject, FollowersObject, ImageObject } from "../api/objects";
 import { ThingArtist } from "../things";
-import CacheEntity from "./cache_entity";
+import CacheEntity, { DisplayFormatter } from "./cache_entity";
 
 export default class CacheArtist extends CacheEntity implements ArtistObject {
     // Properties
@@ -30,9 +30,9 @@ export default class CacheArtist extends CacheEntity implements ArtistObject {
         this.popularity = artist.popularity;
     }
 
-    toThing(): ThingArtist {
+    toThing(formatter: DisplayFormatter): ThingArtist {
         return {
-            id: this.entity,
+            id: this.entity(formatter),
             genres: this.genres,
             popularity: this.popularity,
         };
