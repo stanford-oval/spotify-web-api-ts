@@ -13,6 +13,9 @@ export type SearchQueryProps = {
 };
 
 function stringFor(value: any): undefined | string {
+    if (value === undefined) {
+        return undefined;
+    }
     const valueType = typeof value;
     if (valueType !== "string") {
         console.warn(`Converting unexpected ${valueType} to string: ${value}`);
