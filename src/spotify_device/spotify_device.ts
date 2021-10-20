@@ -144,7 +144,10 @@ export default class SpotifyDevice extends BaseDevice {
 
     // TODO Unsure what this is here for...
     public uniqueId: string;
-    public accessToken: undefined | string = undefined;
+    // WARN Do _NOT_ initialize this!!! It's done automatically, and
+    // initialization will break things!
+    public accessToken: undefined | string;
+
     public spotifyd: undefined | SpotifyDaemon = undefined;
     public readonly log: Logger;
 
@@ -577,13 +580,11 @@ export default class SpotifyDevice extends BaseDevice {
         env: ExecEnvironment
     ): Promise<Array<{ song: ThingTrack }>> {
         // TODO https://api.spotify.com/v1/me/top/tracks?limit=20&time_range=short_term
-        return this._client.personalization
-            .getMyTopTracks()
-            .then((tracks) =>
-                tracks.map((track) => ({
-                    song: track.toThing(this._formatTitle.bind(this)),
-                }))
-            );
+        return this._client.personalization.getMyTopTracks().then((tracks) =>
+            tracks.map((track) => ({
+                song: track.toThing(this._formatTitle.bind(this)),
+            }))
+        );
     }
 
     // TODO Ask Gio about returning `null`
