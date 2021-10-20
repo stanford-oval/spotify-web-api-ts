@@ -1,6 +1,6 @@
 import * as Path from "path";
 
-import * as Winston from "Winston";
+import * as Winston from "winston";
 
 import prettySimple from "./format/pretty_simple";
 import Factory from "./factory";
