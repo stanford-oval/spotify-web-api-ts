@@ -444,6 +444,7 @@ export default class SpotifyDevice extends BaseDevice {
         }
 
         if (this.engine.audio) {
+            log.debug("Engine has ");
             await this.engine.audio.requestAudio(this, {
                 resume: async () => {
                     log.debug("resuming audio");
@@ -515,7 +516,7 @@ export default class SpotifyDevice extends BaseDevice {
             );
         }
 
-        return (await this._client.search.playables({ query, limit: 5 })).map(
+        return (await this._client.search.playables({ query, limit: 1 })).map(
             (playable) => playable.toThing(this._formatTitle.bind(this))
         );
     }

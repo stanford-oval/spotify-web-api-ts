@@ -90,12 +90,7 @@ export default class QueueBuilderManager {
             return;
         }
 
-        // const uris = await builder.popInitialURIs();
-        const uri = await builder.next();
-        if (uri.done) {
-            log.error("Unable to get next URI from QueueBuilder");
-            return;
-        }
+        const uris = await builder.popInitialURIs();
 
         const backgroundBuilder = this._backgroundBuilders.get(appId);
         if (backgroundBuilder !== undefined) {
@@ -106,10 +101,10 @@ export default class QueueBuilderManager {
             this._backgroundBuilders.delete(appId);
         }
 
-        log.debug("Requesting playing initial URI...", { uri: uri.value });
+        log.debug("Requesting playing initial URIs...", { uris });
         await this._play({
             device_id: builder.device.id,
-            uris: uri.value,
+            uris,
         });
 
         log.debug("Kicking off background flush...");
