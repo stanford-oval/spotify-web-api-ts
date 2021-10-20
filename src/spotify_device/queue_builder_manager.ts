@@ -1,6 +1,6 @@
 import QueueBuilder, { URIResolver } from "./queue_builder";
 import Logging from "../logging";
-import { ExecWrapper } from "../things";
+import { ExecWrapper } from "./types";
 import { DeviceObject } from "../api/objects";
 
 const LOG = Logging.get(__filename);

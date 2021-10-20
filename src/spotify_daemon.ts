@@ -34,8 +34,12 @@ import * as path from "path";
 import * as child_process from "child_process";
 import * as crypto from "crypto";
 
+import Logging, { Logger } from "./logging";
+
 const SPOTIFYD_DIST_URL =
     "https://github.com/stanford-oval/spotifyd/releases/download/";
+
+const LOG = Logging.get(__filename);
 
 function safeMkdir(dir: fs.PathLike) {
     try {
@@ -67,22 +71,29 @@ export interface SpotifyDaemonOptions {
 }
 
 export default class SpotifyDaemon {
+    public readonly log: Logger;
     public options: SpotifyDaemonOptions;
     public cacheDir: string;
     public spotifydPath: string;
 
-    protected _killed: boolean;
-    protected _child: null | child_process.ChildProcess;
+    protected _killed: boolean = false;
+    protected _child: null | child_process.ChildProcess = null;
 
     constructor(options: SpotifyDaemonOptions) {
+        this.log = LOG.childFor(SpotifyDaemon, {
+            username: options.username,
+            version: options.version,
+        });
+        this.log.debug("Constructing...");
+
         this.options = options;
 
         this.cacheDir = options.cacheDir;
         this.spotifydPath = path.join(this.cacheDir, "spotifyd", "spotifyd");
-        this._killed = false;
-        this._child = null;
 
+        this.log.debug("Kicking off async initialization....");
         this._init();
+        this.log.debug("Constructed.");
     }
 
     set token(token: undefined | string) {
@@ -104,7 +115,7 @@ export default class SpotifyDaemon {
             .digest("hex"); // same protocol spotifyd uses
     }
 
-    _checkIfInstalled() {
+    protected _checkIfInstalled() {
         try {
             return fs.existsSync(this.spotifydPath);
         } catch (e: any) {
@@ -113,7 +124,11 @@ export default class SpotifyDaemon {
         }
     }
 
-    async _download() {
+    protected async _download() {
+        const log = this.log.childFor(this._download);
+        log.debug("Downloading...");
+        const profiler = log.startTimer();
+
         safeMkdir(path.join(this.cacheDir, "spotifyd"));
 
         let arch = "";
@@ -162,31 +177,59 @@ export default class SpotifyDaemon {
             );
         }
 
+        profiler.done({
+            level: "info",
+            message: "Downloaded.",
+        });
+
         return true;
     }
 
-    async _init() {
-        if (this._child !== null || this._killed) return;
+    protected async _init() {
+        const log = this.log.childFor(this._init);
+        log.debug("Initializing...");
+
+        if (this._child !== null) {
+            log.warn("Can not initialize -- already with child!", {
+                "child.pid": this._child.pid,
+            });
+            return;
+        }
+
+        if (this._killed) {
+            log.warn("Can not initialize -- been killed");
+            return;
+        }
 
         if (!this._checkIfInstalled()) await this._download();
 
         let envs = Object.assign({}, process.env);
         envs["PULSE_PROP"] = "media.role=music";
-        this._child = child_process.spawn(
-            this.spotifydPath,
-            [
-                "--username",
-                this.options.username,
-                "--device-name",
-                this.options.device_name,
-                "--token",
-                this.options.token,
-                "--no-daemon",
-                "--backend",
-                process.arch.match("arm") ? "alsa" : "pulseaudio",
-            ],
-            { stdio: ["inherit", "inherit", "inherit"], env: envs }
-        );
+
+        const args = [
+            "--username",
+            this.options.username,
+            "--device-name",
+            this.options.device_name,
+            "--token",
+            // TODO Ask about this...
+            this.options.token || "",
+            "--no-daemon",
+            "--backend",
+            process.arch.match("arm") ? "alsa" : "pulseaudio",
+        ];
+
+        if (this.options.token === undefined) {
+            log.warn("Token is undefined, omitting from args.");
+        } else {
+            args.push("--token");
+            args.push(this.options.token);
+        }
+
+        this._child = child_process.spawn(this.spotifydPath, args, {
+            stdio: ["inherit", "inherit", "inherit"],
+            env: envs,
+        });
 
         this._child.on("error", (err) => {
             console.error("Failed to spawn spotifyd:", err);
@@ -205,6 +248,8 @@ export default class SpotifyDaemon {
             // autorespawn
             setTimeout(() => this._init(), 30000);
         });
+
+        log.debug("Initialized.", { "child.pid": this._child.pid });
     }
 
     destroy() {

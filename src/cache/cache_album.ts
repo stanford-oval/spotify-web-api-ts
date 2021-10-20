@@ -29,7 +29,7 @@ export default class CacheAlbum extends CacheEntity implements AlbumObject {
     release_date: string;
     release_date_precision: string;
     restrictions?: AlbumRestrictionObject;
-    total_tracks: string; // int
+    total_tracks: number; // int
     copyrights: CopyrightObject[];
     external_ids: ExternalIdObject;
     // Seems to always be empty..?
