@@ -1,4 +1,5 @@
+import Api from "./api";
 import Client from "./client";
-import * as Helpers from "./helpers";
+import SpotifyDevice from "./spotify_device";
 
-export { Client, Helpers };
+export { Api, Client, SpotifyDevice };
