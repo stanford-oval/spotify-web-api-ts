@@ -563,7 +563,7 @@ export default class SpotifyDevice extends BaseDevice {
             ];
         }
 
-        return (await this._client.search.playables({ query, limit: 1 })).map(
+        return (await this._client.search.playables({ query, limit: 5 })).map(
             (playable) => playable.toThing(this._formatTitle.bind(this))
         );
     }
@@ -579,7 +579,8 @@ export default class SpotifyDevice extends BaseDevice {
                 hints,
                 "artist",
                 this._client.search.artists.bind(this._client),
-                this._client.getAnyArtists.bind(this._client)
+                this._client.getAnyArtists.bind(this._client),
+                { limit: 10 }
             )
         ).map((x) => x.toThing(this._formatTitle.bind(this)));
     }
@@ -595,7 +596,8 @@ export default class SpotifyDevice extends BaseDevice {
                 hints,
                 "track",
                 this._client.search.tracks.bind(this._client),
-                this._client.getAnyTracks.bind(this._client)
+                this._client.getAnyTracks.bind(this._client),
+                { limit: 10 }
             )
         ).map((x) => x.toThing(this._formatTitle.bind(this)));
     }
@@ -611,7 +613,8 @@ export default class SpotifyDevice extends BaseDevice {
                 hints,
                 "album",
                 this._client.search.albums.bind(this._client),
-                this._client.getAnyAlbums.bind(this._client)
+                this._client.getAnyAlbums.bind(this._client),
+                { limit: 10 }
             )
         ).map((x) => x.toThing(this._formatTitle.bind(this)));
     }
@@ -627,7 +630,8 @@ export default class SpotifyDevice extends BaseDevice {
                 hints,
                 "any",
                 this._client.search.shows.bind(this._client),
-                this._client.getAnyShows.bind(this._client)
+                this._client.getAnyShows.bind(this._client),
+                { limit: 10 }
             )
         ).map((x) => x.toThing(this._formatTitle.bind(this)));
     }
@@ -643,7 +647,8 @@ export default class SpotifyDevice extends BaseDevice {
                 hints,
                 "any",
                 this._client.search.playlists.bind(this._client),
-                this._client.getAnyPlaylists.bind(this._client)
+                this._client.getAnyPlaylists.bind(this._client),
+                { limit: 10 }
             )
         ).map((x) => x.toThing(this._formatTitle.bind(this)));
     }
