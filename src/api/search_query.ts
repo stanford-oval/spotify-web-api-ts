@@ -9,7 +9,7 @@ export type SearchQueryProps = {
     genre?: string;
     tag?: string;
     track?: string | Value.Entity;
-    year?: string | number | YearRange;
+    year?: string | number | Date | YearRange;
 };
 
 function stringFor(value: any): undefined | string {
@@ -69,6 +69,9 @@ function yearFor(value: any): undefined | string | number | YearRange {
         // "2010-2020", though you're on your own to get it right -- we don't
         // validate
         return value;
+    }
+    if (value instanceof Date) {
+        return value.getFullYear();
     }
     if (Array.isArray(value)) {
         if (value.length !== 2) {

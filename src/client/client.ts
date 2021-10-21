@@ -140,21 +140,10 @@ export default class Client {
         return this.browse.getFeaturedPlaylists();
     }
 
-    /**
-     * Get _any_ shows. Used when [[get_show]] is invoked with an empty query
-     * (no applicable _hints_ from Genie), something like "play a show".
-     *
-     * This is an interesting one, because — opposed to all other playables —
-     * there is currently no strait-forward way I can see to just "get some
-     * shows" via the Web API.
-     *
-     * For now, we simply return the user's saved shows (those in their
-     * library), if any.
-     *
-     * @returns Some shows. Hopefully.
-     */
     getAnyShows(): Promise<CacheShow[]> {
-        return this.library.getShows();
+        return this.search.shows({
+            query: { year: new Date() },
+        });
     }
 
     getAnyPlayable(): Promise<CacheEntity[]> {
