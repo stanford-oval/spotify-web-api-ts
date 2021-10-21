@@ -239,7 +239,7 @@ export default class SpotifyDevice extends BaseDevice {
         this.log.debug("Starting...");
         // make a harmless GET request to start so we'll refresh the access token
         await this._client.users.me();
-        this.log.debug("Stared.");
+        this.log.debug("Started.");
     }
 
     // Helper Instance Methods
