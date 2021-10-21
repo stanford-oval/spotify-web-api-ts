@@ -1,13 +1,15 @@
+import { Logger } from "@stanford-oval/logging";
+
 import { MarketPageOptions } from "../api/requests";
 import CacheEpisode from "../cache/cache_episode";
 import { assertBounds, isUnfinished } from "../helpers";
 import ApiComponent from "./api_component";
-import Logging, { Logger } from "../logging";
+import Logging from "../logging";
 
 const LOG = Logging.get(__filename);
 
 export default class Shows extends ApiComponent {
-    private static readonly log: Logger = LOG.childFor(Shows);
+    private static readonly log: Logger.TLogger = LOG.childFor(Shows);
 
     getEpisodes(
         showId: string,

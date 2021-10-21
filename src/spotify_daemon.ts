@@ -34,7 +34,9 @@ import * as path from "path";
 import * as child_process from "child_process";
 import * as crypto from "crypto";
 
-import Logging, { Logger } from "./logging";
+import { Logger } from "@stanford-oval/logging";
+
+import Logging from "./logging";
 
 const SPOTIFYD_DIST_URL =
     "https://github.com/stanford-oval/spotifyd/releases/download/";
@@ -71,7 +73,7 @@ export interface SpotifyDaemonOptions {
 }
 
 export default class SpotifyDaemon {
-    public readonly log: Logger;
+    public readonly log: Logger.TLogger;
     public options: SpotifyDaemonOptions;
     public cacheDir: string;
     public spotifydPath: string;

@@ -1,9 +1,9 @@
 import { URL, URLSearchParams } from "url";
 
 import { Helpers } from "thingpedia";
+import { Logger } from "@stanford-oval/logging";
 
 import Logging from "../logging";
-import { Logger } from "../logging/logger";
 import { ThingError } from "../things";
 
 // Constants
@@ -36,7 +36,7 @@ export default class Http {
         this.urlBase = urlBase;
     }
 
-    private get log(): Logger {
+    private get log(): Logger.TLogger {
         return Http.LOG;
     }
 

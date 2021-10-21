@@ -6,6 +6,7 @@ import {
     CompiledQueryHints,
     ExecEnvironment,
 } from "thingtalk/dist/runtime/exec_environment";
+import { Logger } from "@stanford-oval/logging";
 
 import SpotifyDaemon from "../spotify_daemon";
 import Client from "../client";
@@ -21,7 +22,7 @@ import {
     ThingTrack,
 } from "../things";
 import { SearchQuery } from "../api/search_query";
-import Logging, { Logger } from "../logging";
+import Logging from "../logging";
 import {
     cast,
     isJSONParseEmptyInputError,
@@ -79,7 +80,7 @@ function genieGet(
         env: ExecWrapper
     ) {
         const log = this.log.childFor(fn, {
-            "request.type": "get",
+            "request.type": "genie.get",
             "state.id": this.state.id,
             "env.app.uniqueId": env.app.uniqueId,
             params,
@@ -123,7 +124,7 @@ function genieDo(
         env: ExecWrapper
     ) {
         const log = this.log.childFor(fn, {
-            "request.type": "do",
+            "request.type": "genie.do",
             "env.app.uniqueId": env.app.uniqueId,
             params,
         });
@@ -132,10 +133,18 @@ function genieDo(
             return;
         }
         log.debug("Start Genie DO request");
+        const proxy = new Proxy(this, {
+            get(target, prop, receiver) {
+                if (prop === "log") {
+                    return log;
+                }
+                return Reflect.get(target, prop, receiver);
+            },
+        });
         const profiler = log.startTimer();
         let response: ReturnType<typeof fn>;
         try {
-            response = await fn.call(this, params, env);
+            response = await fn.call(proxy, params, env);
         } catch (error: any) {
             this._handleError(profiler, error);
         }
@@ -157,7 +166,7 @@ export default class SpotifyDevice extends BaseDevice {
     public accessToken: undefined | string;
 
     public spotifyd: undefined | SpotifyDaemon = undefined;
-    public readonly log: Logger;
+    public readonly log: Logger.TLogger;
 
     public state: SpotifyDeviceState;
 

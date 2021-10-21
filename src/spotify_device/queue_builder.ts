@@ -1,8 +1,9 @@
 import { Value } from "thingpedia";
+import { Logger } from "@stanford-oval/logging";
+
 import { DeviceObject } from "../api/objects";
 import { assertUnreachable, isSingularURI, uriType } from "../helpers";
 import Logging from "../logging";
-import { Logger } from "../logging/logger";
 
 export type URIResolver = (uri: string) => Promise<string[]>;
 
@@ -38,7 +39,7 @@ export default class QueueBuilder {
         this._canceled = false;
     }
 
-    private get log(): Logger {
+    private get log(): Logger.TLogger {
         return QueueBuilder.log;
     }
 
