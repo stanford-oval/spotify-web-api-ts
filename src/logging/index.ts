@@ -8,7 +8,7 @@ const RUN_ROOT = Path.resolve(__dirname, "..");
 
 export default new Factory({
     runRoot: RUN_ROOT,
-    level: "info",
+    level: "http",
     envVarPrefix: "TP_SPOTIFY_LOG",
     transports: [
         //
