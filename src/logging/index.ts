@@ -9,6 +9,7 @@ const RUN_ROOT = Path.resolve(__dirname, "..");
 export default new Factory({
     runRoot: RUN_ROOT,
     level: "info",
+    envVarPrefix: "TP_SPOTIFY_LOG",
     transports: [
         //
         // - Write all logs with level `error` and below to `error.log`
