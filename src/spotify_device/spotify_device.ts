@@ -725,13 +725,12 @@ export default class SpotifyDevice extends BaseDevice {
         );
     }
 
-    // TODO Ask Gio about returning `null`
     @genieGet
     async get_get_currently_playing(
         params: Params,
         hints: CompiledQueryHints,
         env: ExecEnvironment
-    ): Promise<null | ThingTrack | ThingEpisode> {
+    ): Promise<void[] | ThingTrack | ThingEpisode> {
         let response: null | CacheTrack | CacheEpisode;
 
         try {
@@ -744,7 +743,7 @@ export default class SpotifyDevice extends BaseDevice {
         }
 
         if (response === null) {
-            return null;
+            return [];
         }
         return response.toThing(this._formatTitle.bind(this));
     }
