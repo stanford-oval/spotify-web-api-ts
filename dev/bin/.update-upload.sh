@@ -17,5 +17,6 @@ cd "${OVAL_ROOT}/thingpedia-common-devices/main/com.spotify"
 npm update @stanford-oval/spotify-web-api
 
 cd "${OVAL_ROOT}/thingpedia-common-devices"
+rm ./build/main/com.spotify.zip
 ./scripts/upload-all.sh main/com.spotify
 kubectl -n almond-dev delete pod shared-backend-0
