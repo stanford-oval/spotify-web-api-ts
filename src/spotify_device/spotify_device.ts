@@ -102,7 +102,11 @@ function genieGet(
         } catch (error: any) {
             this._handleError(profiler, error);
         }
-        profiler.done({ level: "info", response });
+        profiler.done({
+            level: "info",
+            message: "Genie GET request complete.",
+            response,
+        });
         return response;
     };
 }
@@ -148,7 +152,11 @@ function genieDo(
         } catch (error: any) {
             this._handleError(profiler, error);
         }
-        profiler.done({ level: "info" });
+        profiler.done({
+            level: "info",
+            message: "Genie DO request complete.",
+            response,
+        });
         return response;
     };
 }
@@ -174,6 +182,7 @@ export default class SpotifyDevice extends BaseDevice {
     protected _failedToLaunchDesktopApp: boolean = false;
     protected _client: Client;
     protected _queueBuilders: QueueBuilderManager;
+    protected _playerDevice: undefined | DeviceObject;
 
     constructor(engine: SpotifyDeviceEngine, state: SpotifyDeviceState) {
         super(engine, state);
@@ -202,7 +211,7 @@ export default class SpotifyDevice extends BaseDevice {
 
         this._queueBuilders = new QueueBuilderManager({
             resolveURI: this._client.resolveURI.bind(this._client),
-            getActiveDevice: this._getActiveDevice.bind(this),
+            getActiveDevice: this._getPlayerDevice.bind(this),
             play: this._negotiatePlay.bind(this),
             addToQueue: this._client.player.addToQueue.bind(
                 this._client.player
@@ -237,8 +246,9 @@ export default class SpotifyDevice extends BaseDevice {
 
     async start(): Promise<void> {
         this.log.debug("Starting...");
-        // make a harmless GET request to start so we'll refresh the access token
-        await this._client.users.me();
+        // Try to get a device to play on, which has the added benefit of
+        // refreshing the access token
+        await this._setPlayerDevice();
         this.log.debug("Started.");
     }
 
@@ -334,7 +344,7 @@ export default class SpotifyDevice extends BaseDevice {
     }
 
     protected async _launchDesktopApp(): Promise<DeviceObject[]> {
-        const log = this.log.childFor(this._getActiveDevice);
+        const log = this.log.childFor(this._findPlayerDevice);
 
         const appLauncher = this.platform.getCapability("app-launcher");
 
@@ -366,8 +376,14 @@ export default class SpotifyDevice extends BaseDevice {
         return devices;
     }
 
-    protected async _getActiveDevice(env: ExecWrapper): Promise<DeviceObject> {
-        const log = this.log.childFor(this._getActiveDevice);
+    protected async _findPlayerDevice({
+        env,
+        attemptToLaunch = true,
+    }: {
+        env?: ExecWrapper;
+        attemptToLaunch?: boolean;
+    } = {}): Promise<DeviceObject> {
+        const log = this.log.childFor(this._findPlayerDevice);
 
         log.debug("Getting active player device...");
 
@@ -375,7 +391,7 @@ export default class SpotifyDevice extends BaseDevice {
 
         if (devices.length > 0) {
             log.debug("Found player devices", { devices });
-        } else {
+        } else if (attemptToLaunch) {
             log.warn("No player devices available");
 
             if (this._canLaunchDesktopApp()) {
@@ -395,7 +411,7 @@ export default class SpotifyDevice extends BaseDevice {
                         username: this.state.id,
                         accessToken: this.accessToken,
                     },
-                    env.conversation
+                    env ? env.conversation : undefined
                 );
 
                 if (ok) {
@@ -419,6 +435,8 @@ export default class SpotifyDevice extends BaseDevice {
                 log.error("Failed to launch/initialize any player devices");
                 throw new ThingError("No player devices", "no_active_device");
             }
+        } else {
+            throw new ThingError("No player devices", "no_active_device");
         }
 
         // Prefer spotifyd if we have one ("server" platform)
@@ -457,6 +475,31 @@ export default class SpotifyDevice extends BaseDevice {
             });
         }
         return activeDevice;
+    }
+
+    protected async _setPlayerDevice() {
+        const log = this.log.childFor(this._setPlayerDevice);
+        log.debug("Attempting to set player device...");
+        let device: undefined | DeviceObject = undefined;
+        try {
+            device = await this._findPlayerDevice({ attemptToLaunch: false });
+        } catch (error: any) {
+            if (error instanceof Error) {
+                log.warn("Failed to set player device", error);
+            } else {
+                log.warn("Failed to set player device", { error });
+            }
+            return;
+        }
+        this._playerDevice = device;
+        log.info("Set player device.", { device });
+    }
+
+    protected async _getPlayerDevice(env?: ExecWrapper) {
+        if (this._playerDevice !== undefined) {
+            return this._playerDevice;
+        }
+        return await this._findPlayerDevice({ env });
     }
 
     protected async _negotiatePlay({
@@ -807,7 +850,9 @@ export default class SpotifyDevice extends BaseDevice {
             );
     }
 
+    // #######################################################################
     // ### Actions ###########################################################
+    // #######################################################################
 
     @genieDo
     async do_play(
@@ -893,7 +938,7 @@ export default class SpotifyDevice extends BaseDevice {
     @genieDo
     async do_player_play(params: Params, env: ExecWrapper) {
         this._checkPremium();
-        const device = await this._getActiveDevice(env);
+        const device = await this._getPlayerDevice(env);
         await this._negotiatePlay({
             device_id: device.id,
         });
@@ -902,7 +947,7 @@ export default class SpotifyDevice extends BaseDevice {
     @genieDo
     async do_player_pause(params: Params, env: ExecWrapper) {
         this._checkPremium();
-        const device = await this._getActiveDevice(env);
+        const device = await this._getPlayerDevice(env);
         return this._client.player.pause({
             device_id: device.id,
         });
@@ -911,7 +956,7 @@ export default class SpotifyDevice extends BaseDevice {
     @genieDo
     async do_player_next(params: Params, env: ExecWrapper) {
         this._checkPremium();
-        const device = await this._getActiveDevice(env);
+        const device = await this._getPlayerDevice(env);
         return this._client.player.next({
             device_id: device.id,
         });
@@ -920,7 +965,7 @@ export default class SpotifyDevice extends BaseDevice {
     @genieDo
     async do_player_previous(params: Params, env: ExecWrapper) {
         this._checkPremium();
-        const device = await this._getActiveDevice(env);
+        const device = await this._getPlayerDevice(env);
         return this._client.player.previous({
             device_id: device.id,
         });
@@ -934,7 +979,7 @@ export default class SpotifyDevice extends BaseDevice {
             "Expected params.shuffle to be 'on' or 'off'"
         );
         this._checkPremium();
-        const device = await this._getActiveDevice(env);
+        const device = await this._getPlayerDevice(env);
         await this._client.player.shuffle(shuffle === "on", {
             device_id: device.id,
         });
@@ -948,7 +993,7 @@ export default class SpotifyDevice extends BaseDevice {
             "Expected params.repeat to be 'track', 'context', or 'off'"
         );
         this._checkPremium();
-        const device = await this._getActiveDevice(env);
+        const device = await this._getPlayerDevice(env);
         await this._client.player.repeat(repeat, {
             device_id: device.id,
         });
