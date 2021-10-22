@@ -4,7 +4,7 @@
   "description": "Caching client for Spotify Web API",
   "author": "Stanford University Open Virtual Assistant Lab",
   "license": "Apache-2.0",
-  "repository": "https://github.com/stanford-oval/spotify-web-api-cache-client",
+  "repository": "https://github.com/stanford-oval/spotify-web-api-ts",
   "contributors": [
     {
       "name": "Neil Souza",
@@ -20,7 +20,7 @@
   "dependencies": {
     "elasticlunr": "^0.9.5",
     "redis": "^4.0.0-rc.2",
-    "@stanford-oval/logging": "^0.1.0"
+    "@stanford-oval/logging": "^0.1.1"
   },
   "devDependencies": {
     "@types/elasticlunr": "^0.9.3",
