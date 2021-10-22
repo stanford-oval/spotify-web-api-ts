@@ -17,19 +17,19 @@ import CacheEntity, { DisplayFormatter } from "../cache/cache_entity";
 import CachePlaylist from "../cache/cache_playlist";
 import CacheShow from "../cache/cache_show";
 import { assertUnreachable, sample, uriId, uriType } from "../helpers";
-import Albums from "./albums";
-import Artists from "./artists";
-import Tracks from "./tracks";
+import Albums from "./components/albums";
+import Artists from "./components/artists";
+import Tracks from "./components/tracks";
 import Augment from "./augment";
-import Browse from "./browse";
-import Follow from "./follow";
-import Library from "./library";
-import Personalization from "./personalization";
-import Player from "./player";
-import Playlists from "./playlists";
-import Search from "./search";
-import Shows from "./shows";
-import Users from "./users";
+import Browse from "./components/browse";
+import Follow from "./components/follow";
+import Library from "./components/library";
+import Personalization from "./components/personalization";
+import Player from "./components/player";
+import Playlists from "./components/playlists";
+import Search from "./components/search";
+import Shows from "./components/shows";
+import Users from "./components/users";
 import { PageOptions } from "../api/requests";
 
 // Constants
@@ -39,6 +39,7 @@ import { PageOptions } from "../api/requests";
 
 // Class Definition
 // ===========================================================================
+
 export default class Client {
     // private static readonly log = LOG.childFor(Client);
 

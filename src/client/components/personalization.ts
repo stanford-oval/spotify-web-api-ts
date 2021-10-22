@@ -1,7 +1,7 @@
-import { MyTopOptions } from "../api/requests";
-import CacheArtist from "../cache/cache_artist";
-import CacheTrack from "../cache/cache_track";
-import ApiComponent from "./api_component";
+import { MyTopOptions } from "../../api/requests";
+import CacheArtist from "../../cache/cache_artist";
+import CacheTrack from "../../cache/cache_track";
+import ApiComponent from "../api_component";
 
 export default class Personalization extends ApiComponent {
     getMyTopArtists(options: MyTopOptions = {}): Promise<CacheArtist[]> {

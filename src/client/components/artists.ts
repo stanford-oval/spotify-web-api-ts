@@ -1,6 +1,6 @@
-import CacheArtist from "../cache/cache_artist";
-import CacheTrack from "../cache/cache_track";
-import ApiComponent from "./api_component";
+import CacheArtist from "../../cache/cache_artist";
+import CacheTrack from "../../cache/cache_track";
+import ApiComponent from "../api_component";
 
 export default class Artists extends ApiComponent {
     getAll(ids: string[]): Promise<CacheArtist[]> {

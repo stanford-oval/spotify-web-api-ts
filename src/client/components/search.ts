@@ -1,10 +1,10 @@
-import { SearchKwds } from "../api/apis/search_api";
-import CacheAlbum from "../cache/cache_album";
-import CacheArtist from "../cache/cache_artist";
-import CachePlaylist from "../cache/cache_playlist";
-import CacheShow from "../cache/cache_show";
-import CacheTrack from "../cache/cache_track";
-import ApiComponent from "./api_component";
+import { SearchKwds } from "../../api/apis/search_api";
+import CacheAlbum from "../../cache/cache_album";
+import CacheArtist from "../../cache/cache_artist";
+import CachePlaylist from "../../cache/cache_playlist";
+import CacheShow from "../../cache/cache_show";
+import CacheTrack from "../../cache/cache_track";
+import ApiComponent from "../api_component";
 
 export type CachePlayable = CacheTrack | CacheAlbum | CachePlaylist | CacheShow;
 

@@ -4,12 +4,12 @@ import {
     PagingObject,
     PlaylistTrackObject,
     SimplifiedPlaylistObject,
-} from "../api/objects";
-import { PlaylistAddOptions, PlaylistCreateOptions } from "../api/requests";
-import { PlaylistSnapshotResponse } from "../api/responses";
-import CachePlaylist from "../cache/cache_playlist";
-import { arrayFor } from "../helpers";
-import ApiComponent from "./api_component";
+} from "../../api/objects";
+import { PlaylistAddOptions, PlaylistCreateOptions } from "../../api/requests";
+import { PlaylistSnapshotResponse } from "../../api/responses";
+import CachePlaylist from "../../cache/cache_playlist";
+import { arrayFor } from "../../helpers";
+import ApiComponent from "../api_component";
 
 interface Index {
     id: string;

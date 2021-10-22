@@ -1,8 +1,8 @@
-import CacheAlbum from "../cache/cache_album";
-import CacheShow from "../cache/cache_show";
-import CacheTrack from "../cache/cache_track";
-import { arrayFor } from "../helpers";
-import ApiComponent from "./api_component";
+import CacheAlbum from "../../cache/cache_album";
+import CacheShow from "../../cache/cache_show";
+import CacheTrack from "../../cache/cache_track";
+import { arrayFor } from "../../helpers";
+import ApiComponent from "../api_component";
 
 export default class Library extends ApiComponent {
     getShows(): Promise<CacheShow[]> {

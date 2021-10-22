@@ -1,9 +1,9 @@
-import { CurrentlyPlayingContextObject, DeviceObject } from "../api/objects";
-import { DeviceOptions, RepeatState } from "../api/requests";
-import CacheEpisode from "../cache/cache_episode";
-import CacheTrack from "../cache/cache_track";
-import { assertUnreachable, isSingularURI } from "../helpers";
-import ApiComponent from "./api_component";
+import { CurrentlyPlayingContextObject, DeviceObject } from "../../api/objects";
+import { DeviceOptions, RepeatState } from "../../api/requests";
+import CacheEpisode from "../../cache/cache_episode";
+import CacheTrack from "../../cache/cache_track";
+import { assertUnreachable, isSingularURI } from "../../helpers";
+import ApiComponent from "../api_component";
 
 export default class Player extends ApiComponent {
     async getCurrentlyPlaying(): Promise<null | CacheTrack | CacheEpisode> {

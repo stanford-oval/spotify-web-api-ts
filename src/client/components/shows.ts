@@ -1,10 +1,10 @@
 import { Logger } from "@stanford-oval/logging";
 
-import { MarketPageOptions } from "../api/requests";
-import CacheEpisode from "../cache/cache_episode";
-import { assertBounds, isUnfinished } from "../helpers";
-import ApiComponent from "./api_component";
-import Logging from "../logging";
+import { MarketPageOptions } from "../../api/requests";
+import CacheEpisode from "../../cache/cache_episode";
+import { assertBounds, isUnfinished } from "../../helpers";
+import ApiComponent from "../api_component";
+import Logging from "../../logging";
 
 const LOG = Logging.get(__filename);
 

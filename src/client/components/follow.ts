@@ -1,6 +1,6 @@
-import CacheArtist from "../cache/cache_artist";
-import { arrayFor } from "../helpers";
-import ApiComponent from "./api_component";
+import CacheArtist from "../../cache/cache_artist";
+import { arrayFor } from "../../helpers";
+import ApiComponent from "../api_component";
 
 export default class Follow extends ApiComponent {
     getMyArtists(

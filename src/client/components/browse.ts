@@ -1,7 +1,7 @@
-import { BrowseOptions } from "../api/requests";
-import CacheAlbum from "../cache/cache_album";
-import CachePlaylist from "../cache/cache_playlist";
-import ApiComponent from "./api_component";
+import { BrowseOptions } from "../../api/requests";
+import CacheAlbum from "../../cache/cache_album";
+import CachePlaylist from "../../cache/cache_playlist";
+import ApiComponent from "../api_component";
 
 export default class Browse extends ApiComponent {
     getFeaturedPlaylists(

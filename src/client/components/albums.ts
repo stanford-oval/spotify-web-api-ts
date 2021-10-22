@@ -1,5 +1,5 @@
-import CacheAlbum from "../cache/cache_album";
-import ApiComponent from "./api_component";
+import CacheAlbum from "../../cache/cache_album";
+import ApiComponent from "../api_component";
 
 export default class Albums extends ApiComponent {
     get(id: string): Promise<CacheAlbum> {
