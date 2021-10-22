@@ -79,8 +79,8 @@ export default class Player extends ApiComponent {
                 // playlist, etc.
                 //
                 // We want to swap it into the `context_uri`
-                uris = undefined;
                 context_uri = uris;
+                uris = undefined;
             }
         }
 
