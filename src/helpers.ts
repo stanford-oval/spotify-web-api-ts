@@ -2,7 +2,7 @@ import { strict as assert } from "assert";
 import { Value } from "thingpedia";
 
 import { SimplifiedEpisodeObject } from "./api/objects";
-import { PageOptions } from "./api/requests";
+import { MarketPageOptions, PageOptions } from "./api/requests";
 import { ThingPlayable } from "./things";
 
 // Helper Functions
@@ -24,6 +24,40 @@ export const URI_TYPES: URIType[] = [
     "show",
     "episode",
 ];
+
+export function pick<
+    TObject extends Record<string, unknown>,
+    TKeys extends keyof TObject
+>(keys: TKeys[], record: TObject): Pick<TObject, TKeys> {
+    const out: any = {};
+    for (const key of keys) {
+        out[key] = record[key];
+    }
+    return out;
+}
+
+export function sample<T>(items: T[]): T;
+export function sample<T>(items: T[], n: number): T[];
+export function sample<T>(items: T[], n?: number) {
+    if (n === undefined) {
+        return items[Math.floor(Math.random() * items.length)];
+    }
+    const result: T[] = [];
+    const workCopy: T[] = Array.from(items);
+    while (result.length < n) {
+        // Pick a random index
+        const index = Math.floor(Math.random() * workCopy.length);
+        // Add that item to the result
+        result.push(workCopy[index]);
+        // Put the first item into it's place (if needed)
+        if (index !== 0) {
+            workCopy[index] = workCopy[0];
+        }
+        // Drop the first element
+        workCopy.shift();
+    }
+    return result;
+}
 
 export function uriType(uri: string): URIType {
     for (const type of URI_TYPES) {
@@ -153,6 +187,15 @@ export function checkEntity(name: string, x: any): Value.Entity {
     throw new TypeError(
         `Expected ${name} to be an Entity, given ${typeof x}: ${x}`
     );
+}
+
+export function defaultFromToken(
+    options: MarketPageOptions
+): MarketPageOptions {
+    if (options.market === undefined) {
+        return { ...options, market: "from_token" };
+    }
+    return options;
 }
 
 // Functions Copied/Adapted From Skill

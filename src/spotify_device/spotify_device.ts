@@ -634,15 +634,21 @@ export default class SpotifyDevice extends BaseDevice {
         hints: CompiledQueryHints,
         env: ExecEnvironment
     ): Promise<ThingShow[]> {
-        return (
-            await invokeSearch(
-                hints,
-                "any",
-                this._client.search.shows.bind(this._client),
-                this._client.getAnyShows.bind(this._client),
-                { limit: 10 }
-            )
-        ).map((x) => x.toThing(this._formatTitle.bind(this)));
+        if (!hints.filter) {
+            const show = await this._client.getAnyShow();
+            return [show.toThing(this._formatTitle.bind(this))];
+        }
+
+        const query = buildQuery(hints.filter, "any");
+
+        if (query.isEmpty()) {
+            const show = await this._client.getAnyShow();
+            return [show.toThing(this._formatTitle.bind(this))];
+        }
+
+        const shows = await this._client.search.shows({ query, limit: 10 });
+
+        return shows.map((show) => show.toThing(this._formatTitle.bind(this)));
     }
 
     @genieGet

@@ -3,7 +3,9 @@ import {
     CompiledQueryHints,
 } from "thingtalk/dist/runtime/exec_environment";
 import { SearchKwds } from "../api/apis/search_api";
+import { PageOptions } from "../api/requests";
 import { SearchQuery } from "../api/search_query";
+import { pick } from "../helpers";
 
 export function buildQuery(
     filter: CompiledFilterHint[],
@@ -62,17 +64,17 @@ export function invokeSearch<T>(
     hints: CompiledQueryHints,
     idProp: keyof SearchQuery,
     searchMethod: (kwds: Omit<SearchKwds, "type">) => Promise<T[]>,
-    fallbackMethod: () => Promise<T[]>,
+    fallbackMethod: (options: PageOptions) => Promise<T[]>,
     otherSearchKwds: Omit<SearchKwds, "query" | "type"> = {}
 ): Promise<T[]> {
     if (!hints.filter) {
-        return fallbackMethod();
+        return fallbackMethod(pick(["limit", "offset"], otherSearchKwds));
     }
 
     const query = buildQuery(hints.filter, idProp);
 
     if (query.isEmpty()) {
-        return fallbackMethod();
+        return fallbackMethod(pick(["limit", "offset"], otherSearchKwds));
     }
 
     return searchMethod({ query, ...otherSearchKwds });

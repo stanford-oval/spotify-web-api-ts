@@ -1,14 +1,11 @@
 import { assertBounds } from "../../helpers";
 import { ArtistObject, PagingObject, TrackObject } from "../objects";
+import { MyTopOptions } from "../requests";
 import BaseApi from "./base_api";
 
 export default class PersonalizationApi extends BaseApi {
     getMyTopArtists(
-        options: {
-            time_range?: "long_term" | "medium_term" | "short_term";
-            limit?: number;
-            offset?: number;
-        } = {}
+        options: MyTopOptions = {}
     ): Promise<PagingObject<ArtistObject>> {
         if (options.limit !== undefined) {
             assertBounds("options.limit", options.limit, 1, 50);
@@ -20,11 +17,7 @@ export default class PersonalizationApi extends BaseApi {
     }
 
     getMyTopTracks(
-        options: {
-            time_range?: "long_term" | "medium_term" | "short_term";
-            limit?: number;
-            offset?: number;
-        } = {}
+        options: MyTopOptions = {}
     ): Promise<PagingObject<TrackObject>> {
         if (options.limit !== undefined) {
             assertBounds("options.limit", options.limit, 1, 50);

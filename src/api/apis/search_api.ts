@@ -13,7 +13,10 @@ export type SearchKwds = {
 
 export default class SearchApi extends BaseApi {
     search(kwds: SearchKwds): Promise<SearchResponse> {
-        kwds.query = SearchQuery.from(kwds.query);
-        return this._http.get<SearchResponse>("/v1/search", kwds);
+        const query = SearchQuery.from(kwds.query).toString();
+        return this._http.get<SearchResponse>("/v1/search", {
+            ...kwds,
+            query,
+        });
     }
 }

@@ -16,7 +16,7 @@ import CacheArtist from "../cache/cache_artist";
 import CacheEntity, { DisplayFormatter } from "../cache/cache_entity";
 import CachePlaylist from "../cache/cache_playlist";
 import CacheShow from "../cache/cache_show";
-import { assertUnreachable, uriId, uriType } from "../helpers";
+import { assertUnreachable, sample, uriId, uriType } from "../helpers";
 import Albums from "./albums";
 import Artists from "./artists";
 import Tracks from "./tracks";
@@ -30,6 +30,7 @@ import Playlists from "./playlists";
 import Search from "./search";
 import Shows from "./shows";
 import Users from "./users";
+import { PageOptions } from "../api/requests";
 
 // Constants
 // ===========================================================================
@@ -124,26 +125,32 @@ export default class Client {
     // "play a X" sort of things.
     //
 
-    getAnyArtists(): Promise<CacheArtist[]> {
-        return this.personalization.getMyTopArtists();
+    getAnyArtists(options: PageOptions = {}): Promise<CacheArtist[]> {
+        return this.personalization.getMyTopArtists(options);
     }
 
-    getAnyTracks(): Promise<CacheTrack[]> {
-        return this.personalization.getMyTopTracks();
+    getAnyTracks(options: PageOptions = {}): Promise<CacheTrack[]> {
+        return this.personalization.getMyTopTracks(options);
     }
 
-    getAnyAlbums(): Promise<CacheAlbum[]> {
-        return this.browse.getNewReleases();
+    getAnyAlbums(options: PageOptions = {}): Promise<CacheAlbum[]> {
+        return this.browse.getNewReleases(options);
     }
 
-    getAnyPlaylists(): Promise<CachePlaylist[]> {
-        return this.browse.getFeaturedPlaylists();
+    getAnyPlaylists(options: PageOptions = {}): Promise<CachePlaylist[]> {
+        return this.browse.getFeaturedPlaylists(options);
     }
 
-    getAnyShows(): Promise<CacheShow[]> {
+    getAnyShows(options: PageOptions = {}): Promise<CacheShow[]> {
         return this.search.shows({
+            ...options,
             query: { year: new Date() },
         });
+    }
+
+    async getAnyShow(): Promise<CacheShow> {
+        const top10Shows = await this.getAnyShows({ limit: 10 });
+        return sample(top10Shows);
     }
 
     getAnyPlayable(): Promise<CacheEntity[]> {
