@@ -83,7 +83,7 @@ export default class QueueBuilderManager {
 
         if (builder.srcURIs.length === 1) {
             log.debug("QueueBuilder has a single URI, playing directly.");
-            await this._play({
+            this._play({
                 device_id: builder.device.id,
                 uris: builder.srcURIs[0],
             });
