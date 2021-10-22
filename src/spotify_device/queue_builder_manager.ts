@@ -62,6 +62,17 @@ export default class QueueBuilderManager {
         return builder;
     }
 
+    protected _backgroundProtect(promise: Promise<unknown>): void {
+        promise.catch((reason: any) => {
+            const log = this.log.childFor(this._backgroundProtect);
+            if (reason instanceof Error) {
+                log.error("Background process rejected", reason);
+            } else {
+                log.error("Background process rejected", { reason });
+            }
+        });
+    }
+
     protected async _flush(appId: string): Promise<void> {
         const log = this.log.childFor(this._flush, { appId });
 
@@ -82,11 +93,16 @@ export default class QueueBuilderManager {
         }
 
         if (builder.srcURIs.length === 1) {
-            log.debug("QueueBuilder has a single URI, playing directly.");
-            this._play({
-                device_id: builder.device.id,
-                uris: builder.srcURIs[0],
-            });
+            log.debug(
+                "QueueBuilder has a single URI, playing directly " +
+                    "(async background)."
+            );
+            this._backgroundProtect(
+                this._play({
+                    device_id: builder.device.id,
+                    uris: builder.srcURIs[0],
+                })
+            );
             return;
         }
 
@@ -104,13 +120,15 @@ export default class QueueBuilderManager {
         log.debug("Requesting playing initial URIs (async background)...", {
             uris,
         });
-        this._play({
-            device_id: builder.device.id,
-            uris,
-        }).then(() => {
-            log.debug("Kicking off background flush...");
-            return this._backgroundFlush(builder);
-        });
+        this._backgroundProtect(
+            this._play({
+                device_id: builder.device.id,
+                uris,
+            }).then(() => {
+                log.debug("Kicking off background flush...");
+                return this._backgroundFlush(builder);
+            })
+        );
     }
 
     protected async _backgroundFlush(builder: QueueBuilder) {
