@@ -11,7 +11,17 @@ import { cache } from "../../cache/cache_helpers";
 
 export type CachePlayable = CacheTrack | CacheAlbum | CachePlaylist | CacheShow;
 
+function makeCacheKey(kwds: Omit<SearchKwds, "type">): string {
+    return JSON.stringify(
+        orderedPairsFor({
+            ...kwds,
+            query: SearchQuery.from(kwds.query).toString(),
+        })
+    );
+}
+
 export default class Search extends ApiComponent {
+    @cache(makeCacheKey)
     async artists(kwds: Omit<SearchKwds, "type">): Promise<CacheArtist[]> {
         const response = await this._api.search.search({
             type: "artist",
@@ -24,6 +34,7 @@ export default class Search extends ApiComponent {
         return [];
     }
 
+    @cache(makeCacheKey)
     async albums(kwds: Omit<SearchKwds, "type">): Promise<CacheAlbum[]> {
         const response = await this._api.search.search({
             type: "album",
@@ -36,6 +47,7 @@ export default class Search extends ApiComponent {
         return [];
     }
 
+    @cache(makeCacheKey)
     async tracks(kwds: Omit<SearchKwds, "type">): Promise<CacheTrack[]> {
         const response = await this._api.search.search({
             type: "track",
@@ -48,6 +60,7 @@ export default class Search extends ApiComponent {
         return [];
     }
 
+    @cache(makeCacheKey)
     async shows(kwds: Omit<SearchKwds, "type">): Promise<CacheShow[]> {
         const response = await this._api.search.search({
             type: "show",
@@ -60,6 +73,7 @@ export default class Search extends ApiComponent {
         return [];
     }
 
+    @cache(makeCacheKey)
     async playlists(kwds: Omit<SearchKwds, "type">): Promise<CachePlaylist[]> {
         const response = await this._api.search.search({
             type: "playlist",
@@ -72,14 +86,7 @@ export default class Search extends ApiComponent {
         return [];
     }
 
-    @cache((kwds: Omit<SearchKwds, "type">): string => {
-        return JSON.stringify(
-            orderedPairsFor({
-                ...kwds,
-                query: SearchQuery.from(kwds.query).toString(),
-            })
-        );
-    })
+    @cache(makeCacheKey)
     async playables({
         query,
         market = "from_token",
