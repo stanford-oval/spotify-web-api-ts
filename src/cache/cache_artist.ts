@@ -1,8 +1,9 @@
 import { ArtistObject, FollowersObject, ImageObject } from "../api/objects";
 import { ThingArtist } from "../things";
 import CacheEntity, { DisplayFormatter } from "./cache_entity";
+import { cacheRegister } from "./cache_helpers";
 
-export default class CacheArtist extends CacheEntity implements ArtistObject {
+class CacheArtist extends CacheEntity implements ArtistObject {
     // Properties
     // =======================================================================
 
@@ -38,3 +39,6 @@ export default class CacheArtist extends CacheEntity implements ArtistObject {
         };
     }
 }
+
+cacheRegister(CacheArtist);
+export default CacheArtist;

@@ -6,13 +6,17 @@ import { assertUnreachable, isSingularURI } from "../../helpers";
 import ApiComponent from "../api_component";
 
 export default class Player extends ApiComponent {
-    async getCurrentlyPlaying(): Promise<null | CacheTrack | CacheEpisode> {
+    async getCurrentlyPlaying(): Promise<void | CacheTrack | CacheEpisode> {
         const playing = await this._api.player.getCurrentlyPlaying({
             market: "from_token",
         });
 
+        if (playing === undefined) {
+            return undefined;
+        }
+
         if (playing.item === null) {
-            return null;
+            return undefined;
         } else if (playing.item.type === "track") {
             return this.augment.track(playing.item);
         } else if (playing.item.type === "episode") {
@@ -22,7 +26,7 @@ export default class Player extends ApiComponent {
         }
     }
 
-    get(): Promise<CurrentlyPlayingContextObject> {
+    get(): Promise<undefined | CurrentlyPlayingContextObject> {
         return this._api.player.get();
     }
 

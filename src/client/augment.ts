@@ -87,7 +87,7 @@ export default class Augment extends Component {
             }
 
             cacheTracks.push(
-                new CacheTrack(track, trackArtists, audioFeatures[i])
+                CacheTrack.from(track, trackArtists, audioFeatures[i])
             );
         }
 

@@ -7,6 +7,8 @@ import {
     ExecEnvironment,
 } from "thingtalk/dist/runtime/exec_environment";
 import { Logger } from "@stanford-oval/logging";
+import * as Redis from "redis";
+import { RedisClientType } from "redis/dist/lib/client";
 
 import SpotifyDaemon from "../spotify_daemon";
 import Client from "../client";
@@ -23,16 +25,7 @@ import {
 } from "../things";
 import { SearchQuery } from "../api/search_query";
 import Logging from "../logging";
-import {
-    cast,
-    isJSONParseEmptyInputError,
-    isString,
-    isTestMode,
-    uriId,
-    uriType,
-} from "../helpers";
-import CacheTrack from "../cache/cache_track";
-import CacheEpisode from "../cache/cache_episode";
+import { cast, isString, isTestMode, uriId, uriType } from "../helpers";
 import { CurrentlyPlayingContextObject, DeviceObject } from "../api/objects";
 import { buildQuery, invokeSearch } from "./helpers";
 import QueueBuilderManager from "./queue_builder_manager";
@@ -69,9 +62,10 @@ function genieGet(
 ) {
     const fn = descriptor.value;
 
-    if (typeof fn !== "function") {
-        throw new TypeError(`Only functions`);
-    }
+    assert(
+        typeof fn === "function",
+        `genieGet() can only decorate functions, given ${typeof fn}: ${fn}`
+    );
 
     descriptor.value = async function (
         this: SpotifyDevice,
@@ -118,9 +112,10 @@ function genieDo(
 ) {
     const fn = descriptor.value;
 
-    if (typeof fn !== "function") {
-        throw new TypeError(`Only functions`);
-    }
+    assert(
+        typeof fn === "function",
+        `genieDo() can only decorate functions, given ${typeof fn}: ${fn}`
+    );
 
     descriptor.value = async function (
         this: SpotifyDevice,
@@ -183,6 +178,7 @@ export default class SpotifyDevice extends BaseDevice {
     protected _client: Client;
     protected _queueBuilders: QueueBuilderManager;
     protected _playerDevice: undefined | DeviceObject;
+    protected _redis: RedisClientType;
 
     constructor(engine: SpotifyDeviceEngine, state: SpotifyDeviceState) {
         super(engine, state);
@@ -204,9 +200,12 @@ export default class SpotifyDevice extends BaseDevice {
             });
         }
 
+        this._redis = Redis.createClient({ url: "redis://redis" });
+
         this._client = new Client({
             useOAuth2: this as Helpers.Http.HTTPRequestOptions["useOAuth2"],
-            displayFormatter: this._formatTitle.bind(this),
+            redis: this._redis,
+            userId: this.state.id,
         });
 
         this._queueBuilders = new QueueBuilderManager({
@@ -246,6 +245,7 @@ export default class SpotifyDevice extends BaseDevice {
 
     async start(): Promise<void> {
         this.log.debug("Starting...");
+        await this._redis.connect();
         // Try to get a device to play on, which has the added benefit of
         // refreshing the access token
         await this._setPlayerDevice();
@@ -730,20 +730,11 @@ export default class SpotifyDevice extends BaseDevice {
         params: Params,
         hints: CompiledQueryHints,
         env: ExecEnvironment
-    ): Promise<void[] | ThingTrack | ThingEpisode> {
-        let response: null | CacheTrack | CacheEpisode;
+    ): Promise<ThingTrack | ThingEpisode> {
+        const response = await this._client.player.getCurrentlyPlaying();
 
-        try {
-            response = await this._client.player.getCurrentlyPlaying();
-        } catch (reason: any) {
-            if (isJSONParseEmptyInputError(reason)) {
-                throw new ThingError("No song playing", "no_song_playing");
-            }
-            throw reason;
-        }
-
-        if (response === null) {
-            return [];
+        if (response === undefined) {
+            throw new ThingError("No song playing", "no_song_playing");
         }
         return response.toThing(this._formatTitle.bind(this));
     }
@@ -754,21 +745,7 @@ export default class SpotifyDevice extends BaseDevice {
         hints: CompiledQueryHints,
         env: ExecEnvironment
     ): Promise<undefined | CurrentlyPlayingContextObject> {
-        let playInfo: CurrentlyPlayingContextObject;
-        try {
-            playInfo = await this._client.player.get();
-        } catch (reason: any) {
-            if (isJSONParseEmptyInputError(reason)) {
-                // Follows the previous implementation:
-                //
-                // https://github.com/stanford-oval/thingpedia-common-devices/blob/4c20248f87d000be1aef906d34b74a820aa03788/main/com.spotify/index.js#L164
-                //
-                return undefined;
-            } else {
-                throw reason;
-            }
-        }
-        return playInfo;
+        return this._client.player.get();
     }
 
     @genieGet

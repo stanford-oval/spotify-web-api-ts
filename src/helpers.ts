@@ -85,40 +85,6 @@ export function arrayFor<TItem>(arrayOrItem: TItem | TItem[]): TItem[] {
     return [arrayOrItem];
 }
 
-/**
- * Attempts to tell if a `reason` that came through a promise rejection is due
- * to trying to [[JSON.parse]] the empty string, like:
- *
- *      > JSON.parse("")
- *      Uncaught SyntaxError: Unexpected end of JSON input
- *
- * We can't really be _sure_ that [[JSON.parse]] and the empty string are to
- * blame — there's likely other conditions that cause the same error — but it's
- * the best I think we can do.
- *
- * The whole reason this exists is because I noticed this late in the initial
- * implementation (2021-10-14), and [[Api.get]] currently does a cast to a
- * caller-provided response type `T`. There is no response inspection or
- * validation happening; we're looking the other way / being efficient.
- *
- * It would be a pain to switch [[Api.get]] to resolve `undefined|T` because I'd
- * have to go throw checks in all over the place.
- *
- * Also we _still_ wouldn't know the HTTP response code
- * ([[thingpedia.Helpers.Http]] does not expose the response code for `2xx`
- * statuses), and so would not be able to flag the `200` / `204` or whatever
- * differences, leading me to want to fix this all together at some later point.
- *
- * @param reason A promise rejection reason.
- * @returns `true` if the `reason` may have come from `JSON.parse("")`.
- */
-export function isJSONParseEmptyInputError(reason: any): boolean {
-    return (
-        reason instanceof SyntaxError &&
-        reason.message === "Unexpected end of JSON input"
-    );
-}
-
 // Assertion Helper Functions
 // ---------------------------------------------------------------------------
 

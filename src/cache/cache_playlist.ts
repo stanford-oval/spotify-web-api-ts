@@ -11,6 +11,7 @@ import {
 } from "../api/objects";
 import { ThingPlaylist } from "../things";
 import CacheEntity, { DisplayFormatter } from "./cache_entity";
+import { cacheRegister } from "./cache_helpers";
 
 function isPlaylistObject(
     playlist: SimplifiedPlaylistObject | PlaylistObject
@@ -22,10 +23,7 @@ function isPlaylistObject(
  * Since the Playlist API does _not_ provide a multi-get, it is infeasible to
  *
  */
-export default class CachePlaylist
-    extends CacheEntity
-    implements SimplifiedPlaylistObject
-{
+class CachePlaylist extends CacheEntity implements SimplifiedPlaylistObject {
     // Properties
     // =======================================================================
 
@@ -69,3 +67,6 @@ export default class CachePlaylist
         };
     }
 }
+
+cacheRegister(CachePlaylist);
+export default CachePlaylist;

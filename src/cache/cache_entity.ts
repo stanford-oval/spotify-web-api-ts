@@ -8,7 +8,7 @@ export type DisplayFormatter = (name: string) => string;
  *
  * They must include an `id`, a `name` and a `uri`.
  */
-export default class CacheEntity {
+export default abstract class CacheEntity {
     constructor(
         public type: string,
         public id: string,
@@ -25,5 +25,9 @@ export default class CacheEntity {
         return {
             id: this.entity(formatter),
         };
+    }
+
+    toJSON(): any {
+        return Object.assign({ __class__: this.constructor.name }, this);
     }
 }

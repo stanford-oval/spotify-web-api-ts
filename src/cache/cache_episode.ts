@@ -7,8 +7,9 @@ import {
 } from "../api/objects";
 import { ThingEpisode } from "../things";
 import CacheEntity, { DisplayFormatter } from "./cache_entity";
+import { cacheRegister } from "./cache_helpers";
 
-export default class CacheEpisode extends CacheEntity implements EpisodeObject {
+class CacheEpisode extends CacheEntity implements EpisodeObject {
     // Properties
     // =======================================================================
 
@@ -62,3 +63,6 @@ export default class CacheEpisode extends CacheEntity implements EpisodeObject {
         };
     }
 }
+
+cacheRegister(CacheEpisode);
+export default CacheEpisode;

@@ -13,7 +13,7 @@ import CacheTrack from "../cache/cache_track";
 import Api from "../api";
 import CacheAlbum from "../cache/cache_album";
 import CacheArtist from "../cache/cache_artist";
-import CacheEntity, { DisplayFormatter } from "../cache/cache_entity";
+import CacheEntity from "../cache/cache_entity";
 import CachePlaylist from "../cache/cache_playlist";
 import CacheShow from "../cache/cache_show";
 import { assertUnreachable, sample, uriId, uriType } from "../helpers";
@@ -44,6 +44,8 @@ export default class Client {
     // private static readonly log = LOG.childFor(Client);
 
     protected readonly _api: Api;
+    protected readonly _redis: RedisClientType;
+    protected readonly _userId: string;
 
     public readonly augment: Augment;
     public readonly albums: Albums;
@@ -61,29 +63,38 @@ export default class Client {
 
     constructor({
         useOAuth2,
-        displayFormatter,
         redis,
+        userId,
     }: {
         useOAuth2: Helpers.Http.HTTPRequestOptions["useOAuth2"];
-        displayFormatter: DisplayFormatter;
-        redis?: RedisClientType;
+        redis: RedisClientType;
+        userId: string;
     }) {
         this._api = new Api({ useOAuth2 });
+        this._redis = redis;
+        this._userId = userId;
 
         this.augment = new Augment(this._api);
 
-        this.albums = new Albums(this._api, this.augment);
-        this.artists = new Artists(this._api, this.augment);
-        this.browse = new Browse(this._api, this.augment);
-        this.follow = new Follow(this._api, this.augment);
-        this.library = new Library(this._api, this.augment);
-        this.personalization = new Personalization(this._api, this.augment);
-        this.player = new Player(this._api, this.augment);
-        this.playlists = new Playlists(this._api, this.augment);
-        this.search = new Search(this._api, this.augment);
-        this.shows = new Shows(this._api, this.augment);
-        this.tracks = new Tracks(this._api, this.augment);
-        this.users = new Users(this._api, this.augment);
+        const apiComponentKwds = {
+            api: this._api,
+            augment: this.augment,
+            redis: this._redis,
+            userId: this._userId,
+        };
+
+        this.albums = new Albums(apiComponentKwds);
+        this.artists = new Artists(apiComponentKwds);
+        this.browse = new Browse(apiComponentKwds);
+        this.follow = new Follow(apiComponentKwds);
+        this.library = new Library(apiComponentKwds);
+        this.personalization = new Personalization(apiComponentKwds);
+        this.player = new Player(apiComponentKwds);
+        this.playlists = new Playlists(apiComponentKwds);
+        this.search = new Search(apiComponentKwds);
+        this.shows = new Shows(apiComponentKwds);
+        this.tracks = new Tracks(apiComponentKwds);
+        this.users = new Users(apiComponentKwds);
     }
 
     // Instance Methods

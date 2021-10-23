@@ -10,8 +10,8 @@ export default class PlayerApi extends BaseApi {
     getCurrentlyPlaying(options: {
         market: string;
         additional_types?: string | string[];
-    }): Promise<CurrentlyPlayingObject> {
-        return this._http.get<CurrentlyPlayingObject>(
+    }): Promise<void | CurrentlyPlayingObject> {
+        return this._http.get<void | CurrentlyPlayingObject>(
             "/v1/me/player/currently-playing",
             options
         );
@@ -22,8 +22,8 @@ export default class PlayerApi extends BaseApi {
             market?: string;
             additional_types?: string | string[];
         } = {}
-    ): Promise<CurrentlyPlayingContextObject> {
-        return this._http.get<CurrentlyPlayingContextObject>(
+    ): Promise<undefined | CurrentlyPlayingContextObject> {
+        return this._http.get<undefined | CurrentlyPlayingContextObject>(
             "/v1/me/player",
             options
         );

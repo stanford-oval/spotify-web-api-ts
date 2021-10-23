@@ -1,10 +1,13 @@
 import { SearchKwds } from "../../api/apis/search_api";
+import { SearchQuery } from "../../api/search_query";
 import CacheAlbum from "../../cache/cache_album";
 import CacheArtist from "../../cache/cache_artist";
+import { orderedPairsFor } from "../../cache/cache_helpers";
 import CachePlaylist from "../../cache/cache_playlist";
 import CacheShow from "../../cache/cache_show";
 import CacheTrack from "../../cache/cache_track";
 import ApiComponent from "../api_component";
+import { cache } from "../../cache/cache_helpers";
 
 export type CachePlayable = CacheTrack | CacheAlbum | CachePlaylist | CacheShow;
 
@@ -69,6 +72,14 @@ export default class Search extends ApiComponent {
         return [];
     }
 
+    @cache((kwds: Omit<SearchKwds, "type">): string => {
+        return JSON.stringify(
+            orderedPairsFor({
+                ...kwds,
+                query: SearchQuery.from(kwds.query).toString(),
+            })
+        );
+    })
     async playables({
         query,
         market = "from_token",
@@ -82,7 +93,6 @@ export default class Search extends ApiComponent {
             market,
             limit,
             offset,
-            include_external,
         });
 
         const promises: Promise<CachePlayable[]>[] = [];

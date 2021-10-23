@@ -282,14 +282,12 @@ export class SearchQuery {
         }
     }
 
-    toString(): string {
-        const terms: string[] = [];
-
-        if (this._any !== undefined) {
-            terms.push(SearchQuery.normalize(this._any));
-        }
-
-        const valueMap = [
+    protected _valueMap(): Array<
+        [string, undefined | string | Value.Entity | YearRange]
+    > {
+        const pairs: Array<
+            [string, undefined | string | Value.Entity | YearRange]
+        > = [
             ["album", this._album],
             ["artist", this._artist],
             ["genre", this._genre],
@@ -297,15 +295,22 @@ export class SearchQuery {
             ["track", this._track],
             ["year", encodeYear(this._year)],
         ];
+        return pairs.filter((pair) => pair[1] !== undefined);
+    }
 
-        for (let [key, value] of valueMap) {
-            if (value !== undefined) {
-                value = SearchQuery.normalize(value);
-                if (value.indexOf(" ") > -1) {
-                    value = JSON.stringify(value);
-                }
-                terms.push(`${key}:${value}`);
+    toString(): string {
+        const terms: string[] = [];
+
+        if (this._any !== undefined) {
+            terms.push(SearchQuery.normalize(this._any));
+        }
+
+        for (let [key, value] of this._valueMap()) {
+            value = SearchQuery.normalize(value);
+            if (value.indexOf(" ") > -1) {
+                value = JSON.stringify(value);
             }
+            terms.push(`${key}:${value}`);
         }
 
         return terms.join(" ");

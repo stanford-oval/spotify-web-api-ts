@@ -16,6 +16,27 @@ import CacheEntity, { DisplayFormatter } from "./cache_entity";
 export const DEFAULT_AUDIO_FEATURE = 50;
 
 export default class CacheTrack extends CacheEntity implements TrackObject {
+    // Static Methods
+    // =======================================================================
+
+    static from(
+        track: TrackObject,
+        artists: ArtistObject[],
+        audioFeatures: undefined | null | AudioFeaturesObject
+    ): CacheTrack {
+        const genres: Set<string> = new Set();
+        for (let artist of artists) {
+            for (let genre of artist.genres) {
+                genres.add(genre);
+            }
+        }
+        return new CacheTrack({
+            genres: Array.from(genres),
+            audioFeatures,
+            ...track,
+        });
+    }
+
     // Properties
     // =======================================================================
 
@@ -51,58 +72,71 @@ export default class CacheTrack extends CacheEntity implements TrackObject {
 
     /**
      * Genie consumes track audio features, which is an additional API hit, so
-     * we cache them along with the track.
+     * we cache them along with the props.
      */
-    audio_features: undefined | null | AudioFeaturesObject;
+    audioFeatures: undefined | null | AudioFeaturesObject;
 
     // Construction
     // =======================================================================
 
-    constructor(
-        track: TrackObject,
-        artists: ArtistObject[],
-        audioFeatures: undefined | null | AudioFeaturesObject
-    ) {
-        super(track.type, track.id, track.name, track.uri);
-        this.type = track.type;
-        this.album = track.album;
-        this.artists = track.artists;
-        this.available_markets = track.available_markets;
-        this.disc_number = track.disc_number;
-        this.duration_ms = track.duration_ms;
-        this.explicit = track.explicit;
-        this.external_ids = track.external_ids;
-        this.external_urls = track.external_urls;
-        this.href = track.href;
-        this.is_local = track.is_local;
-        this.is_playable = track.is_playable;
-        this.linked_from = track.linked_from;
-        this.popularity = track.popularity;
-        this.preview_url = track.preview_url;
-        this.restrictions = track.restrictions;
-        this.track_number = track.track_number;
-        const genres: Set<string> = new Set();
-        for (let artist of artists) {
-            for (let genre of artist.genres) {
-                genres.add(genre);
-            }
-        }
-        this.genres = Array.from(genres);
-        this.audio_features = audioFeatures;
+    constructor(props: {
+        type: "track";
+        id: string;
+        name: string;
+        uri: string;
+        album: SimplifiedAlbumObject;
+        artists: SimplifiedArtistObject[];
+        available_markets: string[];
+        disc_number: number; // int
+        duration_ms: number; // int
+        explicit?: boolean; // may be unknown
+        external_ids: ExternalIdObject;
+        external_urls: ExternalUrlObject;
+        href: string;
+        is_local: boolean;
+        is_playable?: boolean; // relinking (when given market)
+        linked_from?: LinkedTrackObject; // relinking (when given market)
+        popularity: number; // int[0, 100]
+        preview_url: string;
+        restrictions?: TrackRestrictionObject;
+        track_number: number; // int, inside disc_number
+        genres: string[];
+        audioFeatures: undefined | null | AudioFeaturesObject;
+    }) {
+        super(props.type, props.id, props.name, props.uri);
+        this.type = props.type;
+        this.album = props.album;
+        this.artists = props.artists;
+        this.available_markets = props.available_markets;
+        this.disc_number = props.disc_number;
+        this.duration_ms = props.duration_ms;
+        this.explicit = props.explicit;
+        this.external_ids = props.external_ids;
+        this.external_urls = props.external_urls;
+        this.href = props.href;
+        this.is_local = props.is_local;
+        this.is_playable = props.is_playable;
+        this.linked_from = props.linked_from;
+        this.popularity = props.popularity;
+        this.preview_url = props.preview_url;
+        this.restrictions = props.restrictions;
+        this.track_number = props.track_number;
+        this.genres = props.genres;
+        this.audioFeatures = props.audioFeatures;
     }
 
     get energy(): number {
-        if (!this.audio_features) {
+        if (!this.audioFeatures) {
             return DEFAULT_AUDIO_FEATURE;
         }
-        return this.audio_features.energy * 100;
+        return this.audioFeatures.energy * 100;
     }
 
     get danceability(): number {
-        if (!this.audio_features) {
+        if (!this.audioFeatures) {
             return DEFAULT_AUDIO_FEATURE;
         }
-        return this.audio_features.danceability * 100;
+        return this.audioFeatures.danceability * 100;
     }
 
     get artistEntities(): Value.Entity[] {

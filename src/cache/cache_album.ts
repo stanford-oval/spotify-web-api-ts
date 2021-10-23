@@ -12,8 +12,9 @@ import {
 } from "../api/objects";
 import { ThingAlbum } from "../things";
 import CacheEntity, { DisplayFormatter } from "./cache_entity";
+import { cacheRegister } from "../cache/cache_helpers";
 
-export default class CacheAlbum extends CacheEntity implements AlbumObject {
+class CacheAlbum extends CacheEntity implements AlbumObject {
     // Properties
     // =======================================================================
 
@@ -83,3 +84,6 @@ export default class CacheAlbum extends CacheEntity implements AlbumObject {
         };
     }
 }
+
+cacheRegister(CacheAlbum);
+export default CacheAlbum;
