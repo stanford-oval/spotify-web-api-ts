@@ -63,10 +63,11 @@ export function cache<TArgs extends any[]>(
         );
 
         descriptor.value = async function (this: ApiComponent, ...args: TArgs) {
-            if (this.log === undefined) {
-                log.error(`this.log is undefined!`, { this: this, fn });
-                throw new Error(`this.log is undefined!`);
-            }
+            log.info(`Starting!`, {
+                this: String(this),
+                fn: String(fn),
+                "this.log": this.log,
+            });
             // const log = this.log.childFor(fn);
             log.debug("START client cache request...", { args });
             const timer = log.startTimer();
