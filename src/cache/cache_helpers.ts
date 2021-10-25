@@ -49,7 +49,7 @@ export function cache<TArgs extends any[]>(
     makeKey: (...args: TArgs) => string,
     setOptions: any = { EX: DEFAULT_TTL_SECONDS }
 ) {
-    const fnLog = LOG.childFor(cache);
+    const log = LOG.childFor(cache);
     return function (
         target: Object,
         propertyKey: string,
@@ -64,10 +64,10 @@ export function cache<TArgs extends any[]>(
 
         descriptor.value = async function (this: ApiComponent, ...args: TArgs) {
             if (this.log === undefined) {
-                fnLog.error(`this.log is undefined!`, { this: this, fn });
+                log.error(`this.log is undefined!`, { this: this, fn });
                 throw new Error(`this.log is undefined!`);
             }
-            const log = this.log.childFor(fn);
+            // const log = this.log.childFor(fn);
             log.debug("START client cache request...", { args });
             const timer = log.startTimer();
             const argsKey = makeKey.apply(this, args);
