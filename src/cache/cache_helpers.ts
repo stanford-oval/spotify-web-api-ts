@@ -27,7 +27,7 @@ export function orderedPairsFor(
 }
 
 export function cacheReviver(key: string, value: any) {
-    if (typeof value !== "object") {
+    if (typeof value !== "object" || value === null) {
         return value;
     }
     if (!value.hasOwnProperty("__class__")) {
