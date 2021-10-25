@@ -31,5 +31,6 @@ export default abstract class ApiComponent extends Component {
                 this.constructor.name.toLowerCase()
             )
         ).childFor(this.constructor);
+        this.log.debug("Constructed!!!");
     }
 }

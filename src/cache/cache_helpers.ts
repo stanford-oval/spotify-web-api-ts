@@ -1,7 +1,9 @@
 import { strict as assert } from "assert";
 
 import ApiComponent from "../client/api_component";
+import Logging from "../logging";
 
+const LOG = Logging.get(__filename);
 const REGISTRY: Record<string, any> = {};
 
 export const DEFAULT_TTL_SECONDS = 60 * 60 * 24; // 1 day
@@ -47,6 +49,7 @@ export function cache<TArgs extends any[]>(
     makeKey: (...args: TArgs) => string,
     setOptions: any = { EX: DEFAULT_TTL_SECONDS }
 ) {
+    const fnLog = LOG.childFor(cache);
     return function (
         target: Object,
         propertyKey: string,
@@ -60,6 +63,10 @@ export function cache<TArgs extends any[]>(
         );
 
         descriptor.value = async function (this: ApiComponent, ...args: TArgs) {
+            if (this.log === undefined) {
+                fnLog.error(`this.log is undefined!`, { this: this, fn });
+                throw new Error(`this.log is undefined!`);
+            }
             const log = this.log.childFor(fn);
             log.debug("START client cache request...", { args });
             const timer = log.startTimer();
