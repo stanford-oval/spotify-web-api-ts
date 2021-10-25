@@ -42,7 +42,7 @@ export function cacheReviver(key: string, value: any) {
         return value;
     }
 
-    return cls(value);
+    return new cls(value);
 }
 
 export function cache<TArgs extends any[]>(
