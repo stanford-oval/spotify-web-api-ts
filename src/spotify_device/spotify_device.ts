@@ -630,7 +630,7 @@ export default class SpotifyDevice extends BaseDevice {
             await invokeSearch(
                 hints,
                 "artist",
-                this._client.search.artists.bind(this._client),
+                this._client.search.artists.bind(this._client.search),
                 this._client.getAnyArtists.bind(this._client),
                 { limit: 10 }
             )
@@ -647,7 +647,7 @@ export default class SpotifyDevice extends BaseDevice {
             await invokeSearch(
                 hints,
                 "track",
-                this._client.search.tracks.bind(this._client),
+                this._client.search.tracks.bind(this._client.search),
                 this._client.getAnyTracks.bind(this._client),
                 { limit: 10 }
             )
@@ -664,7 +664,7 @@ export default class SpotifyDevice extends BaseDevice {
             await invokeSearch(
                 hints,
                 "album",
-                this._client.search.albums.bind(this._client),
+                this._client.search.albums.bind(this._client.search),
                 this._client.getAnyAlbums.bind(this._client),
                 { limit: 10 }
             )
@@ -704,7 +704,7 @@ export default class SpotifyDevice extends BaseDevice {
             await invokeSearch(
                 hints,
                 "any",
-                this._client.search.playlists.bind(this._client),
+                this._client.search.playlists.bind(this._client.search),
                 this._client.getAnyPlaylists.bind(this._client),
                 { limit: 10 }
             )
