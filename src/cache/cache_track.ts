@@ -12,10 +12,11 @@ import {
 } from "../api/objects";
 import { ThingTrack } from "../things";
 import CacheEntity, { DisplayFormatter } from "./cache_entity";
+import { cacheRegister } from "./cache_helpers";
 
 export const DEFAULT_AUDIO_FEATURE = 50;
 
-export default class CacheTrack extends CacheEntity implements TrackObject {
+class CacheTrack extends CacheEntity implements TrackObject {
     // Static Methods
     // =======================================================================
 
@@ -166,3 +167,6 @@ export default class CacheTrack extends CacheEntity implements TrackObject {
         };
     }
 }
+
+cacheRegister(CacheTrack);
+export default CacheTrack;
