@@ -1,22 +1,22 @@
 import * as Path from "path";
 
 import { Logger } from "@stanford-oval/logging";
-import { RedisClientType } from "redis/dist/lib/client";
 
 import Api from "../api";
 import Augment from "./augment";
 import Component from "./component";
 import Logging from "../logging";
+import { RedisClient } from "../helpers";
 
 export default abstract class ApiComponent extends Component {
     protected readonly augment: Augment;
-    public readonly redis: RedisClientType;
+    public readonly redis: RedisClient;
     public readonly userId: string;
     public readonly log: Logger.TLogger;
 
     constructor(props: {
         api: Api;
-        redis: RedisClientType;
+        redis: RedisClient;
         augment: Augment;
         userId: string;
     }) {

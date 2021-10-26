@@ -4,7 +4,6 @@
 // ---------------------------------------------------------------------------
 
 import { Helpers } from "thingpedia";
-import { RedisClientType } from "redis/dist/lib/client";
 
 // Package
 // ---------------------------------------------------------------------------
@@ -16,7 +15,13 @@ import CacheArtist from "../cache/cache_artist";
 import CacheEntity from "../cache/cache_entity";
 import CachePlaylist from "../cache/cache_playlist";
 import CacheShow from "../cache/cache_show";
-import { assertUnreachable, sample, uriId, uriType } from "../helpers";
+import {
+    assertUnreachable,
+    RedisClient,
+    sample,
+    uriId,
+    uriType,
+} from "../helpers";
 import Albums from "./components/albums";
 import Artists from "./components/artists";
 import Tracks from "./components/tracks";
@@ -44,7 +49,7 @@ export default class Client {
     // private static readonly log = LOG.childFor(Client);
 
     protected readonly _api: Api;
-    protected readonly _redis: RedisClientType;
+    protected readonly _redis: RedisClient;
     protected readonly _userId: string;
 
     public readonly augment: Augment;
@@ -67,7 +72,7 @@ export default class Client {
         userId,
     }: {
         useOAuth2: Helpers.Http.HTTPRequestOptions["useOAuth2"];
-        redis: RedisClientType;
+        redis: RedisClient;
         userId: string;
     }) {
         this._api = new Api({ useOAuth2 });

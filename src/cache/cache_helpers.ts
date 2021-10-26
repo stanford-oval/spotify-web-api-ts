@@ -1,12 +1,19 @@
 import { strict as assert } from "assert";
+import { Logger } from "@stanford-oval/logging";
 
-import ApiComponent from "../client/api_component";
 import Logging from "../logging";
+import { RedisClient } from "../helpers";
 
 const LOG = Logging.get(__filename);
 const REGISTRY: Record<string, any> = {};
 
 export const DEFAULT_TTL_SECONDS = 60 * 60 * 24; // 1 day
+
+export interface CacheDecorated {
+    log: Logger.TLogger;
+    redis: RedisClient;
+    userId: string;
+}
 
 export function cacheRegister(cls: any) {
     REGISTRY[cls.name] = cls;
@@ -27,18 +34,29 @@ export function orderedPairsFor(
 }
 
 export function cacheReviver(key: string, value: any) {
-    if (typeof value !== "object" || value === null) {
+    const log = LOG.childFor(cacheReviver);
+    if (value === null || typeof value !== "object") {
         return value;
     }
     if (!value.hasOwnProperty("__class__")) {
         return value;
     }
     const className = value.__class__;
+    log.debug(`Reviving...`, { __class__: className });
     if (typeof className !== "string") {
+        log.warn("Extracted __class__ is not a string! Returning `value`.", {
+            __class__: className,
+            value,
+        });
         return value;
     }
     const cls = REGISTRY[className];
-    if (!cls) {
+    if (cls === undefined) {
+        log.warn("Failed to find __class__ in REGISTRY, returning `value`", {
+            __class__: className,
+            availableClasses: Object.keys(REGISTRY),
+            value,
+        });
         return value;
     }
 
@@ -49,7 +67,6 @@ export function cache<TArgs extends any[]>(
     makeKey: (...args: TArgs) => string,
     setOptions: any = { EX: DEFAULT_TTL_SECONDS }
 ) {
-    const log = LOG.childFor(cache);
     return function (
         target: Object,
         propertyKey: string,
@@ -62,13 +79,11 @@ export function cache<TArgs extends any[]>(
             `cache() can only decorate functions, given ${typeof fn}: ${fn}`
         );
 
-        descriptor.value = async function (this: ApiComponent, ...args: TArgs) {
-            log.info(`Starting!`, {
-                this: String(this),
-                fn: String(fn),
-                "this.log": this.log,
-            });
-            // const log = this.log.childFor(fn);
+        descriptor.value = async function (
+            this: CacheDecorated,
+            ...args: TArgs
+        ) {
+            const log = this.log.childFor(fn, { userId: this.userId });
             log.debug("START client cache request...", { args });
             const timer = log.startTimer();
             const argsKey = makeKey.apply(this, args);

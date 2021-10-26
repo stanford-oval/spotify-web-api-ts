@@ -1,12 +1,10 @@
 import { strict as assert } from "assert";
 import { Value } from "thingpedia";
+import { RedisClientType } from "redis/dist/lib/client";
 
 import { SimplifiedEpisodeObject } from "./api/objects";
 import { MarketPageOptions, PageOptions } from "./api/requests";
 import { ThingPlayable } from "./things";
-
-// Helper Functions
-// ===========================================================================
 
 export type URIType =
     | "track"
@@ -24,6 +22,24 @@ export const URI_TYPES: URIType[] = [
     "show",
     "episode",
 ];
+
+/**
+ * Here to provide centralized indirection for how we typing Redis clients.
+ *
+ * There's some confusion/complexity with how to type Redis clients...
+ * `RedisClientType` is not root exported, and it is parameterized in a way that
+ * I haven't had the time to try and sort out.
+ *
+ * The strait-forward alternative — using the return type of
+ * `Redis.createClient` — has typing issues. As of writing we are using a
+ * pre-release version of the Redis client that uses a promise API and provides
+ * better typing. Assuming this will get sorted out by the `redis` package
+ * authors by the time there is a regular release.
+ */
+export type RedisClient = RedisClientType;
+
+// Helper Functions
+// ===========================================================================
 
 export function pick<
     TObject extends Record<string, unknown>,

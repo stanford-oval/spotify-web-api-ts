@@ -8,7 +8,6 @@ import {
 } from "thingtalk/dist/runtime/exec_environment";
 import { Logger } from "@stanford-oval/logging";
 import * as Redis from "redis";
-import { RedisClientType } from "redis/dist/lib/client";
 
 import SpotifyDaemon from "../spotify_daemon";
 import Client from "../client";
@@ -25,9 +24,16 @@ import {
 } from "../things";
 import { SearchQuery } from "../api/search_query";
 import Logging from "../logging";
-import { cast, isString, isTestMode, uriId, uriType } from "../helpers";
+import {
+    cast,
+    isString,
+    isTestMode,
+    RedisClient,
+    uriId,
+    uriType,
+} from "../helpers";
 import { CurrentlyPlayingContextObject, DeviceObject } from "../api/objects";
-import { buildQuery, invokeSearch } from "./helpers";
+import { buildQuery, invokeSearch } from "./spotify_device_helpers";
 import QueueBuilderManager from "./queue_builder_manager";
 import {
     isOnOff,
@@ -178,7 +184,7 @@ export default class SpotifyDevice extends BaseDevice {
     protected _client: Client;
     protected _queueBuilders: QueueBuilderManager;
     protected _playerDevice: undefined | DeviceObject;
-    protected _redis: RedisClientType;
+    protected _redis: RedisClient;
 
     constructor(engine: SpotifyDeviceEngine, state: SpotifyDeviceState) {
         super(engine, state);
