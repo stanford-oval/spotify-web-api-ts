@@ -1,26 +1,37 @@
 import CacheArtist from "../../cache/cache_artist";
 import CacheTrack from "../../cache/cache_track";
 import ApiComponent from "../api_component";
+import { cache, idKey } from "../../cache/cache_helpers";
 
 export default class Artists extends ApiComponent {
     getAll(ids: string[]): Promise<CacheArtist[]> {
+        if (ids.length === 0) {
+            return Promise.resolve([]);
+        }
+        if (ids.length === 1) {
+            return this.get(ids[0]).then((x) => [x]);
+        }
+
         return this._api.artists
             .getAll(ids)
             .then(this.augment.artists.bind(this.augment));
     }
 
+    @cache(idKey)
     get(id: string): Promise<CacheArtist> {
         return this._api.artists
             .get(id)
             .then(this.augment.artist.bind(this.augment));
     }
 
+    @cache(idKey)
     getTopTracks(id: string): Promise<CacheTrack[]> {
         return this._api.artists
             .getTopTracks(id, { market: "from_token" })
             .then(this.augment.tracks.bind(this.augment));
     }
 
+    @cache(idKey)
     getTopTrackURIs(id: string): Promise<string[]> {
         // TODO This can potentially be done more efficiently
         return this.getTopTracks(id).then((tracks) => tracks.map((t) => t.uri));

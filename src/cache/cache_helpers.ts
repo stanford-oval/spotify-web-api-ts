@@ -64,7 +64,7 @@ export function cacheReviver(key: string, value: any) {
 }
 
 export function cache<TArgs extends any[]>(
-    makeKey: (...args: TArgs) => string,
+    makeArgsKey: null | ((...args: TArgs) => string),
     setOptions: any = { EX: DEFAULT_TTL_SECONDS }
 ) {
     return function (
@@ -85,12 +85,20 @@ export function cache<TArgs extends any[]>(
         ) {
             const log = this.log.childFor(fn, { userId: this.userId });
             log.debug("START client cache request...", { args });
-            const timer = log.startTimer();
-            const argsKey = makeKey.apply(this, args);
-            const key = `com.spotify:${this.userId}:${argsKey}`;
-            const cached = await this.redis.GET(key);
+
+            // Identifies the function by (class.name, function.name)
+            const fnKey = `${this.constructor.name}.${fn.name}`;
+            let key = `com.spotify:${this.userId}:${fnKey}`;
+            if (makeArgsKey !== null) {
+                key = `${key}:${makeArgsKey.apply(this, args)}`;
+            }
+
             let data: any;
             let isFromCache: boolean = false;
+
+            const timer = log.startTimer();
+            const cached = await this.redis.GET(key);
+
             if (cached === null) {
                 log.info("CACHE MISS", { key });
                 data = await fn.apply(this, args);
@@ -109,4 +117,8 @@ export function cache<TArgs extends any[]>(
             return data;
         };
     };
+}
+
+export function idKey(id: string): string {
+    return id;
 }

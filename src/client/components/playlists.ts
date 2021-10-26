@@ -7,6 +7,7 @@ import {
 } from "../../api/objects";
 import { PlaylistAddOptions, PlaylistCreateOptions } from "../../api/requests";
 import { PlaylistSnapshotResponse } from "../../api/responses";
+import { cache, idKey } from "../../cache/cache_helpers";
 import CachePlaylist from "../../cache/cache_playlist";
 import { arrayFor } from "../../helpers";
 import ApiComponent from "../api_component";
@@ -18,16 +19,19 @@ interface Index {
 }
 
 export default class Playlists extends ApiComponent {
+    @cache(idKey)
     get(id: string): Promise<CachePlaylist> {
         return this._api.playlists
             .get(id, { market: "from_token" })
             .then(this.augment.playlist.bind(this.augment));
     }
 
+    @cache(idKey)
     getTracks(id: string): Promise<PagingObject<PlaylistTrackObject>> {
         return this._api.playlists.getTracks(id, { market: "from_token" });
     }
 
+    @cache(idKey)
     getPlaylistTrackURIs(id: string): Promise<string[]> {
         return this.getTracks(id).then((page) =>
             page.items.map((t) => t.track.uri)
@@ -52,6 +56,7 @@ export default class Playlists extends ApiComponent {
         return this._api.playlists.add(id, arrayFor(uris), options);
     }
 
+    @cache(null)
     async getMy(): Promise<CachePlaylist[]> {
         const limit = 50;
         const firstPage = await this._api.playlists.getMy({ limit });
