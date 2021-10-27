@@ -12,9 +12,17 @@ export default class Artists extends ApiComponent {
             return this.get(ids[0]).then((x) => [x]);
         }
 
-        return this._api.artists
-            .getAll(ids)
-            .then(this.augment.artists.bind(this.augment));
+        // chunk the request into multiple chunks of at
+        // most 50 artists (the API will complain otherwise)
+
+        const chunks : string[][] = [];
+        for (let i = 0; i < ids.length; i += 50)
+            chunks.push(ids.slice(i, i+50));
+
+        return Promise.all(chunks.map((chunk) => {
+            return this._api.artists.getAll(chunk)
+                .then(this.augment.artists.bind(this.augment));
+        })).then((res) => res.flat());
     }
 
     @cache(idKey)

@@ -50,6 +50,19 @@ export default class Augment extends Component {
         return new CacheArtist(artist);
     }
 
+    private _getAllArtists(ids : string[]) {
+        // chunk the request into multiple chunks of at
+        // most 50 artists (the API will complain otherwise)
+
+        const chunks : string[][] = [];
+        for (let i = 0; i < ids.length; i += 50)
+            chunks.push(ids.slice(i, i+50));
+
+        return Promise.all(chunks.map((chunk) => {
+            return this._api.artists.getAll(chunk);
+        })).then((res) => res.flat());
+    }
+
     async tracks(tracks: TrackObject[]): Promise<CacheTrack[]> {
         const trackIds: string[] = [];
         const artistIds: Set<string> = new Set();
@@ -62,7 +75,7 @@ export default class Augment extends Component {
 
         const audioFeaturesPromise =
             this._api.tracks.getAudioFeatures(trackIds);
-        const artistsPromise = this._api.artists.getAll(Array.from(artistIds));
+        const artistsPromise = this._getAllArtists(Array.from(artistIds));
 
         const [audioFeatures, artists] = await Promise.all([
             audioFeaturesPromise,
