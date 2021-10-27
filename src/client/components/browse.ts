@@ -12,7 +12,10 @@ import { cache, orderedPairsFor } from "../../cache/cache_helpers";
  * @param options
  * @returns Arguments part of the cache key
  */
-function argsKey(options: BrowseOptions): string {
+function argsKey(options?: BrowseOptions): undefined | string {
+    if (options === undefined) {
+        return undefined;
+    }
     return JSON.stringify(orderedPairsFor(options));
 }
 

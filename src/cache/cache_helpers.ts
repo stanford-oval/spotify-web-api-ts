@@ -64,7 +64,7 @@ export function cacheReviver(key: string, value: any) {
 }
 
 export function cache<TArgs extends any[]>(
-    makeArgsKey: null | ((...args: TArgs) => string),
+    makeArgsKey: null | ((...args: TArgs) => undefined | string),
     setOptions: any = { EX: DEFAULT_TTL_SECONDS }
 ) {
     return function (
@@ -90,7 +90,10 @@ export function cache<TArgs extends any[]>(
             const fnKey = `${this.constructor.name}.${fn.name}`;
             let key = `com.spotify:${this.userId}:${fnKey}`;
             if (makeArgsKey !== null) {
-                key = `${key}:${makeArgsKey.apply(this, args)}`;
+                const argsKey = makeArgsKey.apply(this, args);
+                if (argsKey !== undefined) {
+                    key = `${key}:${makeArgsKey.apply(this, args)}`;
+                }
             }
 
             let data: any;

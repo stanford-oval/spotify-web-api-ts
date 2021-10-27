@@ -5,9 +5,9 @@ import BaseApi from "./base_api";
 
 export default class PersonalizationApi extends BaseApi {
     getMyTopArtists(
-        options: MyTopOptions = {}
+        options?: MyTopOptions
     ): Promise<PagingObject<ArtistObject>> {
-        if (options.limit !== undefined) {
+        if (options?.limit !== undefined) {
             assertBounds("options.limit", options.limit, 1, 50);
         }
         return this._http.get<PagingObject<ArtistObject>>(
@@ -16,10 +16,8 @@ export default class PersonalizationApi extends BaseApi {
         );
     }
 
-    getMyTopTracks(
-        options: MyTopOptions = {}
-    ): Promise<PagingObject<TrackObject>> {
-        if (options.limit !== undefined) {
+    getMyTopTracks(options?: MyTopOptions): Promise<PagingObject<TrackObject>> {
+        if (options?.limit !== undefined) {
             assertBounds("options.limit", options.limit, 1, 50);
         }
         return this._http.get<PagingObject<TrackObject>>(
