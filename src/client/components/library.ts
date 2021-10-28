@@ -3,9 +3,9 @@ import { cache } from "../../cache/cache_helpers";
 import CacheShow from "../../cache/cache_show";
 import CacheTrack from "../../cache/cache_track";
 import { arrayFor } from "../../helpers";
-import ApiComponent from "../api_component";
+import { Component } from "..";
 
-export default class Library extends ApiComponent {
+export class Library extends Component {
     // TODO Get all pages
     @cache(null)
     getShows(): Promise<CacheShow[]> {

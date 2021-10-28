@@ -1,7 +1,7 @@
 import { UserObject } from "../../api/objects";
-import ApiComponent from "../api_component";
+import { Component } from "..";
 
-export default class Users extends ApiComponent {
+export class Users extends Component {
     me(): Promise<UserObject> {
         return this._api.users.me();
     }

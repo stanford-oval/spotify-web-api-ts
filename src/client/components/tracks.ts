@@ -1,3 +1,3 @@
-import ApiComponent from "../api_component";
+import { Component } from "..";
 
-export default class Tracks extends ApiComponent {}
+export class Tracks extends Component {}

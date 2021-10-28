@@ -3,12 +3,12 @@ import { Logger } from "@stanford-oval/logging";
 import { MarketPageOptions } from "../../api/requests";
 import CacheEpisode from "../../cache/cache_episode";
 import { assertBounds, isUnfinished } from "../../helpers";
-import ApiComponent from "../api_component";
+import { Component } from "..";
 import Logging from "../../logging";
 
 const LOG = Logging.get(__filename);
 
-export default class Shows extends ApiComponent {
+export class Shows extends Component {
     private static readonly log: Logger.TLogger = LOG.childFor(Shows);
 
     getEpisodes(

@@ -1,7 +1,7 @@
 import { BrowseOptions } from "../../api/requests";
 import CacheAlbum from "../../cache/cache_album";
 import CachePlaylist from "../../cache/cache_playlist";
-import ApiComponent from "../api_component";
+import { Component } from "..";
 import { cache, orderedPairsFor } from "../../cache/cache_helpers";
 
 /**
@@ -19,7 +19,7 @@ function argsKey(options?: BrowseOptions): undefined | string {
     return JSON.stringify(orderedPairsFor(options));
 }
 
-export default class Browse extends ApiComponent {
+export class Browse extends Component {
     @cache(argsKey)
     getFeaturedPlaylists(
         options: BrowseOptions = {}

@@ -22,19 +22,21 @@ import {
     uriId,
     uriType,
 } from "../helpers";
-import Albums from "./components/albums";
-import Artists from "./components/artists";
-import Tracks from "./components/tracks";
-import Augment from "./augment";
-import Browse from "./components/browse";
-import Follow from "./components/follow";
-import Library from "./components/library";
-import Personalization from "./components/personalization";
-import Player from "./components/player";
-import Playlists from "./components/playlists";
-import Search from "./components/search";
-import Shows from "./components/shows";
-import Users from "./components/users";
+import {
+    Albums,
+    Artists,
+    Tracks,
+    Augment,
+    Browse,
+    Follow,
+    Library,
+    Personalization,
+    Player,
+    Playlists,
+    Search,
+    Shows,
+    Users,
+} from ".";
 import { PageOptions } from "../api/requests";
 
 // Constants
@@ -45,12 +47,12 @@ import { PageOptions } from "../api/requests";
 // Class Definition
 // ===========================================================================
 
-export default class Client {
+export class Client {
     // private static readonly log = LOG.childFor(Client);
 
-    protected readonly _api: Api;
-    protected readonly _redis: RedisClient;
-    protected readonly _userId: string;
+    public readonly api: Api;
+    public readonly redis: RedisClient;
+    public readonly userId: string;
 
     public readonly augment: Augment;
     public readonly albums: Albums;
@@ -75,31 +77,24 @@ export default class Client {
         redis: RedisClient;
         userId: string;
     }) {
-        this._api = new Api({ useOAuth2 });
-        this._redis = redis;
-        this._userId = userId;
+        this.api = new Api({ useOAuth2 });
+        this.redis = redis;
+        this.userId = userId;
 
-        this.augment = new Augment(this._api);
+        this.augment = new Augment(this);
 
-        const apiComponentKwds = {
-            api: this._api,
-            augment: this.augment,
-            redis: this._redis,
-            userId: this._userId,
-        };
-
-        this.albums = new Albums(apiComponentKwds);
-        this.artists = new Artists(apiComponentKwds);
-        this.browse = new Browse(apiComponentKwds);
-        this.follow = new Follow(apiComponentKwds);
-        this.library = new Library(apiComponentKwds);
-        this.personalization = new Personalization(apiComponentKwds);
-        this.player = new Player(apiComponentKwds);
-        this.playlists = new Playlists(apiComponentKwds);
-        this.search = new Search(apiComponentKwds);
-        this.shows = new Shows(apiComponentKwds);
-        this.tracks = new Tracks(apiComponentKwds);
-        this.users = new Users(apiComponentKwds);
+        this.albums = new Albums(this);
+        this.artists = new Artists(this);
+        this.browse = new Browse(this);
+        this.follow = new Follow(this);
+        this.library = new Library(this);
+        this.personalization = new Personalization(this);
+        this.player = new Player(this);
+        this.playlists = new Playlists(this);
+        this.search = new Search(this);
+        this.shows = new Shows(this);
+        this.tracks = new Tracks(this);
+        this.users = new Users(this);
     }
 
     // Instance Methods

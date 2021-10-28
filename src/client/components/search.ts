@@ -6,7 +6,7 @@ import { orderedPairsFor } from "../../cache/cache_helpers";
 import CachePlaylist from "../../cache/cache_playlist";
 import CacheShow from "../../cache/cache_show";
 import CacheTrack from "../../cache/cache_track";
-import ApiComponent from "../api_component";
+import { Component } from "..";
 import { cache } from "../../cache/cache_helpers";
 
 export type CachePlayable = CacheTrack | CacheAlbum | CachePlaylist | CacheShow;
@@ -20,7 +20,7 @@ function makeCacheKey(kwds: Omit<SearchKwds, "type">): string {
     );
 }
 
-export default class Search extends ApiComponent {
+export class Search extends Component {
     @cache(makeCacheKey)
     async artists(kwds: Omit<SearchKwds, "type">): Promise<CacheArtist[]> {
         const response = await this._api.search.search({

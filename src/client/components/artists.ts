@@ -1,9 +1,9 @@
 import CacheArtist from "../../cache/cache_artist";
 import CacheTrack from "../../cache/cache_track";
-import ApiComponent from "../api_component";
+import { Component } from "..";
 import { cache, idKey } from "../../cache/cache_helpers";
 
-export default class Artists extends ApiComponent {
+export class Artists extends Component {
     getAll(ids: string[]): Promise<CacheArtist[]> {
         if (ids.length === 0) {
             return Promise.resolve([]);
@@ -15,14 +15,18 @@ export default class Artists extends ApiComponent {
         // chunk the request into multiple chunks of at
         // most 50 artists (the API will complain otherwise)
 
-        const chunks : string[][] = [];
-        for (let i = 0; i < ids.length; i += 50)
-            chunks.push(ids.slice(i, i+50));
+        const chunks: string[][] = [];
+        for (let i = 0; i < ids.length; i += 50) {
+            chunks.push(ids.slice(i, i + 50));
+        }
 
-        return Promise.all(chunks.map((chunk) => {
-            return this._api.artists.getAll(chunk)
-                .then(this.augment.artists.bind(this.augment));
-        })).then((res) => res.flat());
+        return Promise.all(
+            chunks.map((chunk) => {
+                return this._api.artists
+                    .getAll(chunk)
+                    .then(this.augment.artists.bind(this.augment));
+            })
+        ).then((res) => res.flat());
     }
 
     @cache(idKey)

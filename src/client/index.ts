@@ -1,3 +1,15 @@
-import Client from "./client";
-
-export default Client;
+export * from "./component";
+export * from "./components/albums";
+export * from "./components/artists";
+export * from "./components/browse";
+export * from "./components/follow";
+export * from "./components/library";
+export * from "./components/personalization";
+export * from "./components/player";
+export * from "./components/playlists";
+export * from "./components/search";
+export * from "./components/shows";
+export * from "./components/tracks";
+export * from "./components/users";
+export * from "./augment";
+export * from "./client";

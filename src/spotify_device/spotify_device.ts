@@ -10,7 +10,7 @@ import { Logger } from "@stanford-oval/logging";
 import * as Redis from "redis";
 
 import SpotifyDaemon from "../spotify_daemon";
-import Client from "../client";
+import { Client } from "../client";
 import {
     isEntity,
     ThingAlbum,

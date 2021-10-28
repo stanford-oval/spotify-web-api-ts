@@ -10,7 +10,7 @@ import { PlaylistSnapshotResponse } from "../../api/responses";
 import { cache, idKey } from "../../cache/cache_helpers";
 import CachePlaylist from "../../cache/cache_playlist";
 import { arrayFor } from "../../helpers";
-import ApiComponent from "../api_component";
+import { Component } from "..";
 
 interface Index {
     id: string;
@@ -18,7 +18,7 @@ interface Index {
     description?: string;
 }
 
-export default class Playlists extends ApiComponent {
+export class Playlists extends Component {
     @cache(idKey)
     get(id: string): Promise<CachePlaylist> {
         return this._api.playlists

@@ -1,9 +1,9 @@
 import CacheArtist from "../../cache/cache_artist";
 import { arrayFor } from "../../helpers";
-import ApiComponent from "../api_component";
+import { Component } from "..";
 import { cache } from "../../cache/cache_helpers";
 
-export default class Follow extends ApiComponent {
+export class Follow extends Component {
     // TODO Should pull all the pages
     @cache(null)
     getMyArtists(

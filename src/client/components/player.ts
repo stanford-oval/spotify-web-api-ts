@@ -3,9 +3,9 @@ import { DeviceOptions, RepeatState } from "../../api/requests";
 import CacheEpisode from "../../cache/cache_episode";
 import CacheTrack from "../../cache/cache_track";
 import { assertUnreachable, isSingularURI } from "../../helpers";
-import ApiComponent from "../api_component";
+import { Component } from "..";
 
-export default class Player extends ApiComponent {
+export class Player extends Component {
     async getCurrentlyPlaying(): Promise<void | CacheTrack | CacheEpisode> {
         const playing = await this._api.player.getCurrentlyPlaying({
             market: "from_token",
