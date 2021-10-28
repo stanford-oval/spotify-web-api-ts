@@ -82,7 +82,9 @@ function genieGet(
         const log = this.log.childFor(fn, {
             "request.type": "genie.get",
             "state.id": this.state.id,
-            "env.app.uniqueId": env.app.uniqueId,
+            // HACK This _should_ always be there, but the change has not been
+            //      pushed through yet (2021-10-28)
+            "env.app.uniqueId": env?.app?.uniqueId,
             params,
             hints,
         });
