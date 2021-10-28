@@ -102,6 +102,14 @@ function genieGet(
         } catch (error: any) {
             this._handleError(profiler, error);
         }
+
+        if (!Array.isArray(response)) {
+            log.warn("Genie GET request do not return an Array, wrapping.", {
+                response,
+            });
+            response = [response];
+        }
+
         profiler.done({
             level: "info",
             message: "Genie GET request complete.",
