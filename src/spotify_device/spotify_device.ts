@@ -643,7 +643,7 @@ export default class SpotifyDevice extends BaseDevice {
         return (
             await invokeSearch(
                 hints,
-                "artist",
+                "any",
                 this._client.search.artists.bind(this._client.search),
                 this._client.getAnyArtists.bind(this._client),
                 { limit: 10 }
